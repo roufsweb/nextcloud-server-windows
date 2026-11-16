@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nextcloud Server for Windows (All-In-One)</title>
+  <link rel="stylesheet" href="../ui/css/app.css">
+  <link rel="stylesheet" href="../ui/css/components.css">
+  <style>
+    body {
+      overflow-y: auto;
+      height: auto;
+      min-height: 100vh;
+      display: block;
+      padding: 40px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      background: linear-gradient(135deg, #fff 40%, var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto 24px;
+    }
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+    }
+    .spec-table th, .spec-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.88rem;
+    }
+    .spec-table th {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="brand-icon" style="margin: 0 auto 18px; width: 56px; height: 56px;">
+      <svg viewBox="0 0 24 24" style="width: 32px; height: 32px;">
+        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+      </svg>
+    </div>
+    <h1>Nextcloud Server for Windows</h1>
+    <p>High-Performance, Ultra-Lite Portable Nextcloud 30 with Cloudflare Tunnel Token Support, Direct Windows Drive Access, and Native Rust Desktop Supervisor.</p>
+    <div class="hero-badges">
+      <span class="status-pill online"><span class="status-dot"></span> Windows 10 / 11 / Server (x64)</span>
+      <span class="status-pill online"><span class="status-dot"></span> Under 500 MB Budget</span>
+      <span class="status-pill online"><span class="status-dot"></span> Zero-Config Portable</span>
+      <span class="status-pill online"><span class="status-dot"></span> Cloudflare Tunnel Ready</span>
+    </div>
+    <div style="display:flex; justify-content:center; gap:16px;">
+      <a href="https://github.com/roufsweb/nextcloud-server-windows/releases" class="btn btn-primary" style="padding: 12px 24px; font-size: 0.95rem;">
+        Download Portable Release (ZIP)
+      </a>
+      <a href="https://github.com/roufsweb/nextcloud-server-windows" class="btn btn-secondary" style="padding: 12px 24px; font-size: 0.95rem;">
+        View on GitHub
+      </a>
+    </div>
+  </div>
+
+  <!-- Showcase Grid -->
+  <div class="grid-cards" style="margin-bottom: 32px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Caddy v2 FastCGI Proxy</div>
+        <span class="status-pill online">HTTP/2 & HTTP/3</span>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-secondary)">Single static binary with zero external DLLs, transparent FastCGI proxying, and 15 MB RAM footprint.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">PHP 8.3 NTS + OPcache JIT</div>
+        <span class="status-pill online">30-40% Faster</span>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-secondary)">Non-Thread-Safe FastCGI with Zend OPcache precompilation, APCu local cache, and Redis transactional locking.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Direct Drive NTFS ACLs</div>
+        <span class="status-pill online">Full Permissions</span>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-secondary)">Mount any drive letter (D:\, E:\) on demand with automated universal ACL granting (*S-1-1-0) via icacls.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Cloudflare Tunnel Token</div>
+        <span class="status-pill online">Zero Port Forwarding</span>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-secondary)">Instant worldwide HTTPS access without opening firewall ports, configuring DDNS, or exposing public IPs.</p>
+    </div>
+  </div>
+
+  <!-- Technical Specifications Card -->
+  <div class="card" style="margin-bottom: 32px;">
+    <div class="card-header">
+      <div class="card-title">Architecture Specifications</div>
+      <span class="status-pill online">Production Ready</span>
+    </div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Implementation</th>
+          <th>Resource Footprint</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Supervisor & GUI</strong></td>
+          <td>Rust 1.100 (\`nextcloud-aio.exe\`) + Embedded Modern UI</td>
+          <td>3.8 MB binary, ~20 MB RAM</td>
+        </tr>
+        <tr>
+          <td><strong>Web Server</strong></td>
+          <td>Caddy v2 x64 Portable</td>
+          <td>~30 MB, ~15 MB RAM</td>
+        </tr>
+        <tr>
+          <td><strong>PHP Engine</strong></td>
+          <td>PHP 8.3.36 NTS x64 + Redis & APCu PECL Extensions</td>
+          <td>~34 MB, ~50 MB RAM</td>
+        </tr>
+        <tr>
+          <td><strong>Remote Access</strong></td>
+          <td>Cloudflared x64 Portable Tunnel Daemon</td>
+          <td>~35 MB, ~18 MB RAM</td>
+        </tr>
+        <tr>
+          <td><strong>Core Cloud</strong></td>
+          <td>Nextcloud Server 30.0.2 (AGPLv3)</td>
+          <td>~280 MB</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
