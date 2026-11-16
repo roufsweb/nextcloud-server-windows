@@ -105,6 +105,7 @@ $CONFIG = [
     'OC\Preview\Movie',
     'OC\Preview\PDF',
     'OC\Preview\SVG',
+    'OC\Preview\Photoshop',
   ],
 
   // ----------------------------------------------------------------------------

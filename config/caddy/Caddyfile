@@ -44,12 +44,27 @@
     }
     respond @forbidden 404
 
-    # PHP FastCGI handler
+    # PHP FastCGI handler with immediate response streaming (prevents Cloudflare 524 timeouts)
     php_fastcgi 127.0.0.1:9000 {
         root nextcloud
         env front_controller_active true
         split .php
         index index.php
+        flush_interval -1
+    }
+
+    # Media streaming header (Cloudflare TOS & private video compliance)
+    @media {
+        path *.mp4 *.mov *.mkv *.avi *.webm *.heic *.dng *.flac
+    }
+    header @media {
+        Cache-Control "private, no-transform"
+    }
+
+    # Standalone Desktop UI route
+    handle_path /_dashboard* {
+        root * ui
+        file_server
     }
 
     # Serve static assets directly
