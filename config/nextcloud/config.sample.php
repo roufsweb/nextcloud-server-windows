@@ -49,6 +49,7 @@ $CONFIG = [
   'datadirectory' => 'C:\\NextcloudAIO\\data',
   'skeletondirectory' => '', // Clean onboarding: disable default heavy demo files
   'files_external_allow_create_new_local' => true,
+  'filesystem_check_changes' => 1, // Auto-detects files added to physical drives in Windows
   'allow_local_remote_servers' => true,
   'quota_include_external_storage' => false,
 

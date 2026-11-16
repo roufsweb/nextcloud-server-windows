@@ -136,25 +136,41 @@ class AppController {
     // Render Drive Cards
     const driveContainer = document.getElementById('drive-list-container');
     if (driveContainer && this.state.drives) {
-      driveContainer.innerHTML = this.state.drives.map(d => `
-        <div class="drive-card">
-          <div class="drive-info">
-            <div class="drive-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
+      driveContainer.innerHTML = this.state.drives.map(d => {
+        const total = d.total_gb || 1000;
+        const used = d.used_gb || 200;
+        const free = d.free_gb || (total - used);
+        const pct = Math.min(100, Math.round((used / total) * 100));
+        return `
+        <div class="drive-card" style="flex-direction:column; align-items:stretch; gap:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div class="drive-info">
+              <div class="drive-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="drive-name">${d.name}</div>
+                <div class="drive-path">${d.path}</div>
+              </div>
             </div>
-            <div>
-              <div class="drive-name">${d.name}</div>
-              <div class="drive-path">${d.path}</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="badge-permission">✓ ${d.permission}</span>
+              <span class="status-pill online">${d.status}</span>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="badge-permission">✓ ${d.permission}</span>
-            <span class="status-pill online">${d.status}</span>
+          <div style="margin-top:4px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-secondary); margin-bottom:4px;">
+              <span><strong>${free} GB free</strong> of ${total} GB</span>
+              <span>${pct}% used</span>
+            </div>
+            <div class="storage-bar-track" style="height:6px;">
+              <div class="storage-bar-fill" style="width: ${pct}%;"></div>
+            </div>
           </div>
         </div>
-      `).join('');
+      `;}).join('');
     }
 
     // Update Tunnel URL

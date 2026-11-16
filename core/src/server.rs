@@ -30,6 +30,9 @@ struct DriveInfo {
     path: String,
     permission: String,
     status: String,
+    total_gb: u64,
+    used_gb: u64,
+    free_gb: u64,
 }
 
 #[derive(Deserialize)]
@@ -84,13 +87,19 @@ pub async fn run_dashboard_server(
             let (status_line, content_type, body_response) = if uri == "/api/status" {
                 let cfg = config_clone.lock().await;
                 let drives_info: Vec<DriveInfo> = cfg.external_drives.iter().map(|p| {
+                    let (tot, used, free) = drive::get_disk_space(p);
                     DriveInfo {
                         name: p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| p.to_string_lossy().to_string()),
                         path: p.to_string_lossy().to_string(),
                         permission: "Full Control (NTFS)".to_string(),
                         status: "Active".to_string(),
+                        total_gb: tot,
+                        used_gb: used,
+                        free_gb: free,
                     }
                 }).collect();
+
+                let (data_tot, data_used, _data_free) = drive::get_disk_space(&cfg.data_dir);
 
                 let resp = StatusResponse {
                     running: true,
@@ -100,8 +109,8 @@ pub async fn run_dashboard_server(
                     tunnel_status: if cfg.cloudflare_token.is_some() { "Connected".into() } else { "Offline".into() },
                     tunnel_url: "https://cloud.yourdomain.com".into(),
                     drives: drives_info,
-                    total_disk_gb: 1000,
-                    used_disk_gb: 215,
+                    total_disk_gb: data_tot,
+                    used_disk_gb: data_used,
                 };
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&resp).unwrap_or_default())
             } else if method == "POST" && uri == "/api/drives/mount" {
