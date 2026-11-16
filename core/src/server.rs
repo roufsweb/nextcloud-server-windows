@@ -52,6 +52,12 @@ struct DataRootRequest {
     path: String,
 }
 
+#[derive(Deserialize)]
+struct AdminUpdateRequest {
+    username: String,
+    password: Option<String>,
+}
+
 pub async fn run_dashboard_server(
     port: u16,
     config: Arc<Mutex<AppConfig>>,
@@ -147,6 +153,50 @@ pub async fn run_dashboard_server(
                     cfg.data_dir = path;
                     let _ = cfg.save(config_path);
                     ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"data_root_updated\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
+                }
+            } else if uri == "/api/users/admin" {
+                let cfg = config_clone.lock().await;
+                let user = cfg.admin_username.clone().unwrap_or_else(|| "admin".to_string());
+                let resp = serde_json::json!({
+                    "username": user,
+                    "status": "Active (Administrator)",
+                    "auth_source": "Local Database"
+                });
+                ("HTTP/1.1 200 OK", "application/json", resp.to_string())
+            } else if method == "POST" && uri == "/api/users/update-admin" {
+                if let Ok(req) = serde_json::from_str::<AdminUpdateRequest>(body) {
+                    let mut cfg = config_clone.lock().await;
+                    let new_user = req.username.trim().to_string();
+                    cfg.admin_username = Some(new_user.clone());
+                    let _ = cfg.save(config_path);
+
+                    // If a new password was provided, update autoconfig.php and attempt OCC password update
+                    if let Some(pwd) = req.password {
+                        if !pwd.trim().is_empty() {
+                            let auto_cfg_path = "config/nextcloud/autoconfig.php";
+                            if let Ok(content) = fs::read_to_string(auto_cfg_path) {
+                                let updated = content
+                                    .replace("'adminlogin'    => 'admin'", &format!("'adminlogin'    => '{}'", new_user))
+                                    .replace("'adminpass'     => 'NextcloudAdmin2026!'", &format!("'adminpass'     => '{}'", pwd.trim()));
+                                let _ = fs::write(auto_cfg_path, updated);
+                            }
+
+                            // Trigger occ password reset in background if installed
+                            let php_path = cfg.php_path.clone();
+                            let target_user = new_user.clone();
+                            let pass_val = pwd.trim().to_string();
+                            std::thread::spawn(move || {
+                                let mut cmd = std::process::Command::new(php_path);
+                                cmd.arg("nextcloud/occ").args(["user:resetpassword", "--password-from-env", &target_user]);
+                                cmd.env("OC_PASS", pass_val);
+                                let _ = cmd.output();
+                            });
+                        }
+                    }
+
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"success\",\"message\":\"Administrator credentials updated\"}".into())
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
                 }

@@ -65,4 +65,21 @@ export class ServerApi {
     });
     return res.json();
   }
+
+  async getAdminUser() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/users/admin`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { username: 'admin', status: 'Active (Administrator)' };
+  }
+
+  async updateAdminUser(username, password) {
+    const res = await fetch(`${this.baseUrl}/api/users/update-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    return res.json();
+  }
 }

@@ -121,10 +121,69 @@ class AppController {
         }
       });
     }
+
+    // First-Run Onboarding Modal Handlers
+    const modalOnboard = document.getElementById('onboarding-modal');
+    if (modalOnboard && !localStorage.getItem('nc_onboarded')) {
+      modalOnboard.style.display = 'flex';
+    }
+
+    const btnOnboardSkip = document.getElementById('btn-onboard-skip');
+    if (btnOnboardSkip) {
+      btnOnboardSkip.addEventListener('click', () => {
+        localStorage.setItem('nc_onboarded', 'true');
+        if (modalOnboard) modalOnboard.style.display = 'none';
+        this.logViewer.append('CORE', 'First-run setup completed using default administrator credentials.');
+      });
+    }
+
+    const formOnboard = document.getElementById('form-onboarding');
+    if (formOnboard) {
+      formOnboard.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('onboard-username').value.trim();
+        const pass = document.getElementById('onboard-password').value.trim();
+        if (user && pass) {
+          await this.api.updateAdminUser(user, pass);
+          localStorage.setItem('nc_onboarded', 'true');
+          if (modalOnboard) modalOnboard.style.display = 'none';
+          this.logViewer.append('CORE', `Administrator account configured: ${user}`);
+          alert(`Administrator account created successfully!`);
+          this.refresh();
+        }
+      });
+    }
+
+    // In-App Admin User Management Form
+    const formUpdateAdmin = document.getElementById('form-update-admin');
+    if (formUpdateAdmin) {
+      formUpdateAdmin.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('input-admin-username').value.trim();
+        const pass = document.getElementById('input-admin-password').value.trim();
+        if (user) {
+          this.logViewer.append('CORE', `Updating administrator credentials for '${user}'...`);
+          await this.api.updateAdminUser(user, pass || undefined);
+          this.logViewer.append('CORE', `Administrator credentials updated in database.`);
+          alert('Administrator account credentials updated successfully!');
+          document.getElementById('input-admin-password').value = '';
+          this.refresh();
+        }
+      });
+    }
   }
 
   async refresh() {
     this.state = await this.api.getStatus();
+    const adminData = await this.api.getAdminUser();
+
+    // Update Admin label
+    const adminUserElem = document.getElementById('lbl-admin-username');
+    if (adminUserElem && adminData.username) {
+      adminUserElem.textContent = adminData.username;
+      const inputAdminUser = document.getElementById('input-admin-username');
+      if (inputAdminUser) inputAdminUser.value = adminData.username;
+    }
 
     // Render storage gauge
     this.gauge.render(this.state);

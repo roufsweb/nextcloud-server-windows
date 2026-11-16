@@ -303,3 +303,28 @@
 .log-tag.tag-core { color: #56d364; }
 .log-tag.tag-tunnel { color: #e3b341; }
 .log-tag.tag-error { color: #ff7b72; background: rgba(255, 123, 114, 0.15); }
+
+/* Modal Onboarding Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}

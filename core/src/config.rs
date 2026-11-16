@@ -13,6 +13,7 @@ pub struct AppConfig {
     pub php_path: PathBuf,
     pub cloudflared_path: PathBuf,
     pub external_drives: Vec<PathBuf>,
+    pub admin_username: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -42,6 +43,7 @@ impl Default for AppConfig {
             php_path: php_bin,
             cloudflared_path: cloudflared_bin,
             external_drives: Vec::new(),
+            admin_username: Some("admin".to_string()),
         }
     }
 }
