@@ -2,97 +2,81 @@
 name: telegram-bridge
 description: >-
   Bi-directional Telegram conversation bridge for Antigravity. Listens for user
-  commands via Telegram Bot, injects them into agent sessions, delivers persistent
-  real-time progress updates (every 1-2 mins), provides interactive feedback
-  controls (Queue, Stop, Status), and maintains zero token usage while idling.
+  commands via Telegram Bot, sends instant acknowledgments, action plans,
+  periodic 1-2 minute progress updates, and task completions without button clutter.
 ---
 
-# Telegram Bridge & Remote Agent Controller
+# Telegram Bridge & Remote Conversation Workflow
 
-This skill enables full remote control of the Antigravity agent through a Telegram Bot. It provides a zero-token idling listener, persistent live progress updates, and an interactive feedback loop with inline action buttons.
+This skill enforces a reliable, communicative, 4-stage feedback loop for all interactions between the user on Telegram and the Antigravity agent.
 
 ---
 
-## 1. Zero-Token Idling Architecture
+## 1. Mandatory 4-Stage Communication Protocol
+
+When a user sends an instruction via Telegram, the agent and bridge must strictly follow this exact sequence:
 
 ```text
-[User in Telegram]
+[User Sends Prompt]
         │
-        ▼ (Telegram Long Polling: getUpdates?timeout=45)
-[telegram_cli.php wait-message]  <--- Running as a Background Task in Antigravity
-        │                             (Uses 0 LLM tokens while waiting)
-        ▼ (User hits Send)
-[Task finishes with exit 0]
+        ▼ (Stage 1: Automated Sub-Second Ack)
+"⚡ Got the prompt, working on it! Will notify you shortly."
         │
-        ▼ (Reactive Wakeup triggers Antigravity)
-[Antigravity Context Resumes] ---> Reads command ---> Executes requested work
+        ▼ (Stage 2: Plan & Action Summary)
+"📋 Action Plan: Here is what I am going to do:
+ 1. ...
+ 2. ...
+ Starting execution now."
         │
-        ▼ (Replies to User)
-[telegram_cli.php send / progress-update] ---> [User receives formatted update in Telegram]
+        ▼ (Stage 3: Periodic Progress Updates - Every 1-2 Mins)
+"🔄 Progress Update: Step 2 in progress... [Details]"
+        │
+        ▼ (Stage 4: Completion Summary)
+"✅ Task Complete: [Summary of work done, files changed, verification results]"
 ```
-
-- While waiting for user commands, Antigravity **sleeps** and consumes **zero tokens**.
-- As soon as the user sends a message or taps an inline button, the background task completes, waking up the agent with the user's exact message payload.
 
 ---
 
-## 2. Configuration & Credentials
+## 2. Protocol Details
 
-Telegram Bot credentials must strictly reside in `.telegram/config.json` (gitignored to comply with GitHub Security & Secret rules).
+### Stage 1: Automatic Instant Acknowledgment
+- Handled automatically at the transport layer by `telegram_cli.php wait-message`.
+- As soon as the user's message is received, Telegram immediately replies:
+  `⚡ Got the prompt, working on it! Will notify you shortly.`
+- This reassures the user that the bridge received the prompt without delay.
 
-### Setup Command:
-```bash
-./.agents/skills/telegram-bridge/scripts/telegram_cli.php configure "<BOT_TOKEN>" "<ALLOWED_CHAT_ID>"
-```
+### Stage 2: Action Plan Summary
+- Before executing tool calls or heavy tasks, the agent sends a clean, bulleted summary of its planned actions:
+  ```bash
+  ./.agents/skills/telegram-bridge/scripts/telegram_cli.php send "📋 *Action Plan:*
+  • Task: <Brief goal>
+  • Steps to execute:
+    1. <Step 1>
+    2. <Step 2>
+    3. <Step 3>
+  Working on this now..."
+  ```
 
-* **Security Whitelist**: The bridge automatically drops all messages from unknown Telegram IDs, ensuring only the authorized user can control the agent.
+### Stage 3: Persistent Progress Updates (Every 1–2 Minutes)
+- During multi-step builds, compilation, audits, or downloads:
+  ```bash
+  ./.agents/skills/telegram-bridge/scripts/telegram_cli.php progress-update "🔨 *Progress Update (Step 2/3):*
+  • Cross-compiling Windows PE32+ binary...
+  • Time elapsed: 45s"
+  ```
+- Uses in-place message editing to avoid flooding the user's chat.
 
----
+### Stage 4: Completion Delivery & Zero-Token Idle
+- When work is finished, deliver a clean, comprehensive summary:
+  ```bash
+  ./.agents/skills/telegram-bridge/scripts/telegram_cli.php send "✅ *Task Completed Successfully!*
+  <Summary of results>"
+  ```
+- **Return to Sleep**: Immediately re-launch the background listener:
+  ```bash
+  ./.agents/skills/telegram-bridge/scripts/listen_daemon.sh
+  ```
+  *(Set `WaitMsBeforeAsync: 500`)*. Consumes **0 tokens** while waiting for the next prompt.
 
-## 3. Operational Workflows for the Agent
-
-### A. Entering Zero-Token Sleep to Wait for User Commands
-When all current work is done and waiting for the user's next instruction via Telegram:
-1. Run the background listener task:
-   ```bash
-   ./.agents/skills/telegram-bridge/scripts/telegram_cli.php wait-message 60
-   ```
-   *(Set `WaitMsBeforeAsync: 500` to background it immediately).*
-2. End your turn without calling further tools.
-3. The system will automatically wake you up when the user sends a message.
-
-### B. Sending Persistent Progress Updates (Every 1–2 Minutes)
-During long-running multi-step operations (e.g. compiling, downloading runtimes, configuring servers):
-1. Send or edit the persistent status card:
-   ```bash
-   ./.agents/skills/telegram-bridge/scripts/telegram_cli.php progress-update "📦 Compiling Windows binary (Step 3/5)..."
-   ```
-2. The script edits the existing Telegram status message in-place using `editMessageText`, eliminating chat spam while keeping the user fully informed.
-
-### C. Interactive Feedback Loop & Options Menu
-If a task is actively running and the user sends an incoming command, offer interactive control buttons:
-```bash
-./.agents/skills/telegram-bridge/scripts/telegram_cli.php send-interactive \
-  "⚠️ *Task in Progress*: Currently compiling the server.\nWhat would you like to do with your new command?" \
-  '[[{"text":"➕ Queue Command","callback_data":"action:queue"},{"text":"⏹ Stop Current Task","callback_data":"action:stop"}],[{"text":"📊 View Logs & Status","callback_data":"action:status"}]]'
-```
-
-When the user taps a button, `wait-message` returns:
-```json
-{
-  "type": "callback",
-  "data": "action:queue",
-  "message_id": 142,
-  "chat_id": "12345678"
-}
-```
-The agent reads `data` and acts accordingly:
-- `action:queue`: Appends command to `.telegram/queue.json` and resumes the current task.
-- `action:stop`: Kills running tasks and immediately begins the new command.
-- `action:status`: Sends latest logs/progress snapshot.
-
-### D. Sending Final Task Completion
-When an operation finishes:
-```bash
-./.agents/skills/telegram-bridge/scripts/telegram_cli.php send "✅ *Task Completed Successfully!*\nNextcloud Server Windows build is ready."
-```
+### 🚫 No Unsolicited Inline Buttons Rule
+- Do not attach arbitrary inline keyboard buttons unless explicitly requested by the user. Keep the interaction natural, communicative, and text-focused.

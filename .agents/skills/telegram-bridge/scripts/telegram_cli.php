@@ -270,6 +270,15 @@ switch ($cmd) {
 
                     if ($checkAuth($msg) && !empty($text)) {
                         save_state($state);
+
+                        // Immediate acknowledgment receipt back to Telegram
+                        $escapedPreview = htmlspecialchars(mb_strimwidth($text, 0, 70, '...'), ENT_QUOTES, 'UTF-8');
+                        telegram_api('sendMessage', [
+                            'chat_id'    => $senderId,
+                            'text'       => "⚡ <b>Got the prompt, working on it!</b>\n<i>\"{$escapedPreview}\"</i>\nWill notify you shortly.",
+                            'parse_mode' => 'HTML',
+                        ]);
+
                         echo json_encode([
                             'type'        => 'message',
                             'text'        => $text,
