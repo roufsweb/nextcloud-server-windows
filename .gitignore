@@ -14,6 +14,9 @@ credentials.json
 cert.pem
 privkey.pem
 secrets/
+.telegram/
+telegram.json
+telegram_config.json
 
 # Large Binaries & Bundles (Prevent Git LFS / Repository bloat / Copyright bans)
 # Binary releases should be managed via GitHub Releases, NOT raw git repo

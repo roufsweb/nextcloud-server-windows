@@ -39,3 +39,4 @@ All AI agents working on this project must strictly comply with the following co
   scripts/audit_frontend.sh
   ```
 - Use the `github-ops` skill for release packaging, repository push, pull, and integrity validation.
+- Use the `telegram-bridge` skill ([telegram-bridge](file:///.agents/skills/telegram-bridge/SKILL.md)) for zero-token remote control, live progress updates, and Telegram command dispatching.
