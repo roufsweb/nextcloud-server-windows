@@ -8,7 +8,7 @@
 
 declare(strict_types=1);
 
-$BASE_DIR = dirname(__DIR__, 3); // repo root: /mnt/data/roufsweb/nextcloud-server-windows
+$BASE_DIR = dirname(__DIR__, 4); // repo root: /mnt/data/roufsweb/nextcloud-server-windows
 $CONFIG_DIR = $BASE_DIR . '/.telegram';
 $CONFIG_FILE = $CONFIG_DIR . '/config.json';
 $STATE_FILE = $CONFIG_DIR . '/state.json';
@@ -27,6 +27,7 @@ function load_config(): array {
     }
     return [
         'bot_token' => getenv('TELEGRAM_BOT_TOKEN') ?: '',
+        'allowed_username' => getenv('TELEGRAM_ALLOWED_USER') ?: 'roufsweb',
         'allowed_chat_id' => getenv('TELEGRAM_CHAT_ID') ?: '',
     ];
 }
@@ -92,18 +93,25 @@ $cmd = $argv[1] ?? 'help';
 switch ($cmd) {
     case 'configure':
         $token = $argv[2] ?? null;
-        $chatId = $argv[3] ?? null;
+        $userOrChatId = $argv[3] ?? null;
 
-        if (!$token || !$chatId) {
-            echo "Usage: php telegram_cli.php configure <BOT_TOKEN> <ALLOWED_CHAT_ID>\n";
+        if (!$token || !$userOrChatId) {
+            echo "Usage: php telegram_cli.php configure <BOT_TOKEN> <USERNAME_OR_CHAT_ID>\n";
             exit(1);
         }
 
-        save_config([
+        $cleanUser = ltrim(trim($userOrChatId), '@');
+        $isNumeric = is_numeric($cleanUser);
+
+        $cfg = [
             'bot_token' => trim($token),
-            'allowed_chat_id' => trim($chatId),
-        ]);
+            'allowed_username' => $isNumeric ? '' : strtolower($cleanUser),
+            'allowed_chat_id' => $isNumeric ? $cleanUser : '',
+        ];
+        save_config($cfg);
         echo "✓ Telegram configuration saved successfully in .telegram/config.json\n";
+        echo "  Bot Token: " . substr(trim($token), 0, 10) . "...\n";
+        echo "  Allowed User: " . ($cfg['allowed_username'] ? '@' . $cfg['allowed_username'] : 'ID: ' . $cfg['allowed_chat_id']) . "\n";
         break;
 
     case 'send':
@@ -193,9 +201,10 @@ switch ($cmd) {
         $timeout = isset($argv[2]) ? (int)$argv[2] : 45;
         $config = load_config();
         $state = load_state();
-        $allowedChatId = (string)$config['allowed_chat_id'];
+        $allowedChatId = (string)($config['allowed_chat_id'] ?? '');
+        $allowedUser = strtolower(ltrim((string)($config['allowed_username'] ?? ''), '@'));
 
-        if (empty($config['bot_token']) || empty($allowedChatId)) {
+        if (empty($config['bot_token']) || (empty($allowedChatId) && empty($allowedUser))) {
             fwrite(STDERR, "[ERROR] Missing credentials in .telegram/config.json\n");
             exit(1);
         }
@@ -215,15 +224,32 @@ switch ($cmd) {
                     $state['last_update_id'] = $updateId;
                 }
 
+                // Check authorization helper
+                $checkAuth = function(array $entity) use (&$config, $allowedChatId, $allowedUser): bool {
+                    $senderId = (string)($entity['chat']['id'] ?? $entity['from']['id'] ?? '');
+                    $senderUser = strtolower(ltrim((string)($entity['from']['username'] ?? $entity['chat']['username'] ?? ''), '@'));
+
+                    if (!empty($allowedUser) && $senderUser === $allowedUser) {
+                        if (empty($config['allowed_chat_id']) || $config['allowed_chat_id'] !== $senderId) {
+                            $config['allowed_chat_id'] = $senderId;
+                            save_config($config);
+                        }
+                        return true;
+                    }
+                    if (!empty($allowedChatId) && $senderId === $allowedChatId) {
+                        return true;
+                    }
+                    return false;
+                };
+
                 // Handle Callback Query (Button Press)
                 if (isset($update['callback_query'])) {
                     $cb = $update['callback_query'];
-                    $senderId = (string)($cb['message']['chat']['id'] ?? '');
+                    $senderId = (string)($cb['message']['chat']['id'] ?? $cb['from']['id'] ?? '');
 
-                    // Answer callback to remove loading animation in Telegram UI
                     telegram_api('answerCallbackQuery', ['callback_query_id' => $cb['id']]);
 
-                    if ($senderId === $allowedChatId) {
+                    if ($checkAuth($cb)) {
                         save_state($state);
                         echo json_encode([
                             'type'        => 'callback',
@@ -242,7 +268,7 @@ switch ($cmd) {
                     $senderId = (string)($msg['chat']['id'] ?? '');
                     $text = $msg['text'] ?? '';
 
-                    if ($senderId === $allowedChatId && !empty($text)) {
+                    if ($checkAuth($msg) && !empty($text)) {
                         save_state($state);
                         echo json_encode([
                             'type'        => 'message',
@@ -267,8 +293,9 @@ switch ($cmd) {
         $config = load_config();
         $state = load_state();
         echo json_encode([
-            'configured'       => !empty($config['bot_token']) && !empty($config['allowed_chat_id']),
-            'allowed_chat_id'  => $config['allowed_chat_id'] ?: 'unset',
+            'configured'       => !empty($config['bot_token']) && (!empty($config['allowed_chat_id']) || !empty($config['allowed_username'])),
+            'allowed_username' => $config['allowed_username'] ?: 'unset',
+            'allowed_chat_id'  => $config['allowed_chat_id'] ?: 'pending_first_message',
             'last_update_id'   => $state['last_update_id'],
         ], JSON_PRETTY_PRINT) . "\n";
         break;
