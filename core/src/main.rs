@@ -1,5 +1,6 @@
 mod config;
 mod drive;
+mod server;
 mod supervisor;
 mod tunnel;
 
@@ -8,12 +9,14 @@ use colored::*;
 use config::AppConfig;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 const CONFIG_PATH: &str = "config/app_config.json";
 
 #[derive(Parser)]
 #[command(name = "nextcloud-aio")]
-#[command(about = "All-In-One Nextcloud Server for Windows - Process Supervisor & Drive Access Manager", long_about = None)]
+#[command(about = "All-In-One Nextcloud Server for Windows - Desktop Supervisor & Drive Access Manager", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -21,8 +24,19 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Start all Nextcloud services (Caddy, PHP FastCGI, Cloudflared tunnel)
-    Start,
+    /// Start Nextcloud services (Caddy, PHP FastCGI, Cloudflared tunnel) + in-app dashboard
+    Start {
+        /// Dashboard UI port
+        #[arg(short, long, default_value_t = 8081)]
+        dashboard_port: u16,
+    },
+
+    /// Launch the standalone Modern Desktop Dashboard GUI
+    Gui {
+        /// Dashboard UI port
+        #[arg(short, long, default_value_t = 8081)]
+        port: u16,
+    },
 
     /// Check health and status of all components
     Status,
@@ -50,12 +64,30 @@ enum Commands {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let mut config = AppConfig::load_or_default(CONFIG_PATH);
+    let config = AppConfig::load_or_default(CONFIG_PATH);
+    let shared_config = Arc::new(Mutex::new(config.clone()));
 
     match cli.command {
-        Commands::Start => {
+        Commands::Start { dashboard_port } => {
+            // Spawn internal dashboard HTTP server in background
+            let srv_cfg = Arc::clone(&shared_config);
+            tokio::spawn(async move {
+                if let Err(e) = server::run_dashboard_server(dashboard_port, srv_cfg, CONFIG_PATH).await {
+                    eprintln!("Dashboard server error: {}", e);
+                }
+            });
+
+            // Start backend process supervisor
             let sup = supervisor::ServerSupervisor::new(config);
             sup.start()?;
+        }
+        Commands::Gui { port } => {
+            println!("{}", "=========================================================".cyan());
+            println!("{}", "   Nextcloud AIO Standalone Desktop Dashboard (Web/GUI)  ".bold().green());
+            println!("{}", "=========================================================".cyan());
+
+            let srv_cfg = Arc::clone(&shared_config);
+            server::run_dashboard_server(port, srv_cfg, CONFIG_PATH).await?;
         }
         Commands::Status => {
             println!("{}", "=== Nextcloud Server AIO Status ===".bold().cyan());
@@ -74,15 +106,17 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::SetToken { token } => {
             tunnel::validate_token(&token)?;
-            config.cloudflare_token = Some(token.trim().to_string());
-            config.save(CONFIG_PATH)?;
+            let mut cfg = shared_config.lock().await;
+            cfg.cloudflare_token = Some(token.trim().to_string());
+            cfg.save(CONFIG_PATH)?;
             println!("{} Cloudflare Tunnel token configured successfully!", "✓".green());
         }
         Commands::GrantDrive { path } => {
             drive::grant_drive_permissions(&path)?;
-            if !config.external_drives.contains(&path) {
-                config.external_drives.push(path.clone());
-                config.save(CONFIG_PATH)?;
+            let mut cfg = shared_config.lock().await;
+            if !cfg.external_drives.contains(&path) {
+                cfg.external_drives.push(path.clone());
+                cfg.save(CONFIG_PATH)?;
             }
             println!("{} Drive registered and permissions verified for Nextcloud direct access.", "✓".green());
         }

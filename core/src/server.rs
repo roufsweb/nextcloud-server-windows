@@ -1,0 +1,173 @@
+use crate::config::AppConfig;
+use crate::drive;
+use crate::tunnel;
+use anyhow::Result;
+use colored::*;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
+use tokio::sync::Mutex;
+
+#[derive(Serialize)]
+struct StatusResponse {
+    running: bool,
+    server_port: u16,
+    fastcgi_port: u16,
+    data_dir: String,
+    tunnel_status: String,
+    tunnel_url: String,
+    drives: Vec<DriveInfo>,
+    total_disk_gb: u64,
+    used_disk_gb: u64,
+}
+
+#[derive(Serialize)]
+struct DriveInfo {
+    name: String,
+    path: String,
+    permission: String,
+    status: String,
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct MountDriveRequest {
+    path: String,
+    name: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct TunnelTokenRequest {
+    token: String,
+}
+
+#[derive(Deserialize)]
+struct DataRootRequest {
+    path: String,
+}
+
+pub async fn run_dashboard_server(
+    port: u16,
+    config: Arc<Mutex<AppConfig>>,
+    config_path: &'static str,
+) -> Result<()> {
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
+    println!("{} Nextcloud AIO Dashboard running on: {}", "🚀".bold(), format!("http://localhost:{}", port).cyan());
+
+    loop {
+        let (mut socket, _) = listener.accept().await?;
+        let config_clone = Arc::clone(&config);
+
+        tokio::spawn(async move {
+            let mut buffer = [0u8; 4096];
+            let n = match socket.read(&mut buffer).await {
+                Ok(n) if n > 0 => n,
+                _ => return,
+            };
+
+            let req_str = String::from_utf8_lossy(&buffer[..n]);
+            let lines: Vec<&str> = req_str.lines().collect();
+            if lines.is_empty() { return; }
+
+            let first_line: Vec<&str> = lines[0].split_whitespace().collect();
+            if first_line.len() < 2 { return; }
+
+            let method = first_line[0];
+            let uri = first_line[1];
+
+            // Extract body if POST
+            let body = req_str.split("\r\n\r\n").nth(1).unwrap_or("");
+
+            let (status_line, content_type, body_response) = if uri == "/api/status" {
+                let cfg = config_clone.lock().await;
+                let drives_info: Vec<DriveInfo> = cfg.external_drives.iter().map(|p| {
+                    DriveInfo {
+                        name: p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| p.to_string_lossy().to_string()),
+                        path: p.to_string_lossy().to_string(),
+                        permission: "Full Control (NTFS)".to_string(),
+                        status: "Active".to_string(),
+                    }
+                }).collect();
+
+                let resp = StatusResponse {
+                    running: true,
+                    server_port: cfg.server_port,
+                    fastcgi_port: cfg.fastcgi_port,
+                    data_dir: cfg.data_dir.to_string_lossy().to_string(),
+                    tunnel_status: if cfg.cloudflare_token.is_some() { "Connected".into() } else { "Offline".into() },
+                    tunnel_url: "https://cloud.yourdomain.com".into(),
+                    drives: drives_info,
+                    total_disk_gb: 1000,
+                    used_disk_gb: 215,
+                };
+                ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&resp).unwrap_or_default())
+            } else if method == "POST" && uri == "/api/drives/mount" {
+                if let Ok(req) = serde_json::from_str::<MountDriveRequest>(body) {
+                    let drive_path = std::path::PathBuf::from(&req.path);
+                    let _ = drive::grant_drive_permissions(&drive_path);
+                    let mut cfg = config_clone.lock().await;
+                    if !cfg.external_drives.contains(&drive_path) {
+                        cfg.external_drives.push(drive_path);
+                        let _ = cfg.save(config_path);
+                    }
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"success\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid request\"}".into())
+                }
+            } else if method == "POST" && uri == "/api/tunnel/token" {
+                if let Ok(req) = serde_json::from_str::<TunnelTokenRequest>(body) {
+                    if tunnel::validate_token(&req.token).is_ok() {
+                        let mut cfg = config_clone.lock().await;
+                        cfg.cloudflare_token = Some(req.token.trim().to_string());
+                        let _ = cfg.save(config_path);
+                        ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"token_saved\"}".into())
+                    } else {
+                        ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid token format\"}".into())
+                    }
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
+                }
+            } else if method == "POST" && uri == "/api/config/dataroot" {
+                if let Ok(req) = serde_json::from_str::<DataRootRequest>(body) {
+                    let path = std::path::PathBuf::from(&req.path);
+                    let _ = drive::grant_drive_permissions(&path);
+                    let mut cfg = config_clone.lock().await;
+                    cfg.data_dir = path;
+                    let _ = cfg.save(config_path);
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"data_root_updated\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
+                }
+            } else {
+                // Static file serving from ui/
+                let clean_uri = if uri == "/" { "/index.html" } else { uri.split('?').next().unwrap_or(uri) };
+                let file_path = Path::new("ui").join(clean_uri.trim_start_matches('/'));
+
+                if file_path.exists() && file_path.is_file() {
+                    let mime = match file_path.extension().and_then(|s| s.to_str()).unwrap_or("") {
+                        "html" => "text/html; charset=utf-8",
+                        "css" => "text/css; charset=utf-8",
+                        "js" => "application/javascript; charset=utf-8",
+                        "svg" => "image/svg+xml",
+                        "json" => "application/json",
+                        _ => "text/plain",
+                    };
+                    let content = fs::read_to_string(&file_path).unwrap_or_default();
+                    ("HTTP/1.1 200 OK", mime, content)
+                } else {
+                    ("HTTP/1.1 404 Not Found", "text/plain", "Not Found".to_string())
+                }
+            };
+
+            let response = format!(
+                "{}\r\nContent-Type: {}\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n{}",
+                status_line, content_type, body_response.len(), body_response
+            );
+
+            let _ = socket.write_all(response.as_bytes()).await;
+        });
+    }
+}

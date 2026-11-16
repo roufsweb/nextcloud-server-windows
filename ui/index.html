@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nextcloud Server for Windows (All-In-One)</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">Nextcloud AIO</div>
+          <div class="brand-subtitle">Windows Edition</div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a href="#" class="nav-item active" data-view="view-dashboard">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-view="view-storage">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span>Storage & Drives</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-view="view-tunnel">
+            <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span>Cloudflare Tunnel</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-item" data-view="view-logs">
+            <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            <span>In-App Logs</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <span>v1.0.0 (Production)</span>
+        <span class="status-pill online"><span class="status-dot"></span> Active</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <h1 class="view-title" id="current-view-title">Dashboard</h1>
+        <div class="top-actions">
+          <button class="btn btn-success" id="btn-start-services">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Start Server
+          </button>
+          <button class="btn btn-secondary" id="btn-stop-services">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
+            Stop
+          </button>
+          <a href="http://localhost:8080" target="_blank" class="btn btn-primary">
+            Open Nextcloud
+          </a>
+        </div>
+      </header>
+
+      <!-- View: Dashboard -->
+      <section class="tab-content active" id="view-dashboard">
+        <div class="grid-cards">
+          <!-- Nextcloud Core -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Nextcloud Core</div>
+              <span class="status-pill online"><span class="status-dot"></span> Running</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-secondary)">
+              <p>Version: <strong>30.0.2</strong></p>
+              <p>Address: <a href="http://localhost:8080" target="_blank" style="color:var(--accent-cyan)">http://localhost:8080</a></p>
+            </div>
+          </div>
+
+          <!-- Web Server Caddy -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Caddy Web Server</div>
+              <span class="status-pill online"><span class="status-dot"></span> Active</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-secondary)">
+              <p>Protocol: <strong>HTTP/2 & HTTP/3 (QUIC)</strong></p>
+              <p>Port: <strong>8080</strong> (Proxy to FastCGI)</p>
+            </div>
+          </div>
+
+          <!-- PHP Runtime -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">PHP 8.3 NTS FastCGI</div>
+              <span class="status-pill online"><span class="status-dot"></span> 127.0.0.1:9000</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-secondary)">
+              <p>Engine: <strong>Zend Engine v4.3 + JIT</strong></p>
+              <p>Memory Cache: <strong>APCu + Redis</strong></p>
+            </div>
+          </div>
+
+          <!-- Cloudflare Tunnel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Cloudflare Tunnel</div>
+              <span class="status-pill online"><span class="status-dot"></span> Connected</span>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-secondary)">
+              <p>Status: <strong>HTTPS Secure Tunnel</strong></p>
+              <p>External: <a href="#" id="lbl-tunnel-url" target="_blank" style="color:var(--accent-cyan)">https://cloud.yourdomain.com</a></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- In-Dashboard Storage Gauge Container -->
+        <div id="storage-gauge-root"></div>
+      </section>
+
+      <!-- View: Storage & External Drives -->
+      <section class="tab-content" id="view-storage">
+        <!-- Nextcloud Data Root Directory Card -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Nextcloud Data Root Directory
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Select Folder</button>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <p style="font-size:0.85rem; color:var(--text-secondary);">All internal cloud user files and database stores reside here:</p>
+              <code id="lbl-data-dir" style="font-size:0.95rem; color:var(--accent-cyan); display:block; margin-top:4px;">C:\NextcloudAIO\data</code>
+            </div>
+            <span class="badge-permission">✓ Full NTFS Permissions Granted</span>
+          </div>
+        </div>
+
+        <!-- Add Drive On Demand Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              Add Drive on Demand (External Storage with Full Permissions)
+            </div>
+          </div>
+          <form id="form-add-drive">
+            <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:12px; align-items:flex-end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="input-drive-path">Drive Letter / Directory Path</label>
+                <input type="text" class="form-input" id="input-drive-path" placeholder="e.g. D:\ or E:\MyStorage" required>
+                <div class="form-help">Automatically executes Windows NTFS ACL grant (*S-1-1-0) for full read/write/delete.</div>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="input-drive-name">Display Name in Nextcloud</label>
+                <input type="text" class="form-input" id="input-drive-name" placeholder="e.g. Media Drive">
+              </div>
+              <button type="submit" class="btn btn-primary" style="height:42px;">
+                Grant Full Access & Mount
+              </button>
+            </div>
+          </form>
+
+          <h3 style="font-size:0.95rem; margin-top:28px; margin-bottom:12px; font-weight:600;">Active Connected Drives</h3>
+          <div class="drive-list" id="drive-list-container">
+            <!-- Driven dynamically populated by app.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Cloudflare Tunnel -->
+      <section class="tab-content" id="view-tunnel">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+              Cloudflare Tunnel Configuration
+            </div>
+            <span class="status-pill online"><span class="status-dot"></span> Token Support Ready</span>
+          </div>
+          <form id="form-save-tunnel">
+            <div class="form-group">
+              <label class="form-label" for="input-tunnel-token">Cloudflare Tunnel Token</label>
+              <textarea class="form-input" id="input-tunnel-token" rows="3" placeholder="Paste your Cloudflare Tunnel token here (eyJh...)"></textarea>
+              <div class="form-help">The token connects your local Nextcloud server directly to your Cloudflare Zero Trust domain over encrypted tunnels without exposing open ports.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save & Connect Tunnel</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- View: In-App Logs -->
+      <section class="tab-content" id="view-logs" style="height: calc(100vh - var(--header-height)); padding-bottom: 24px;">
+        <div id="log-viewer-root" style="height: 100%;"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

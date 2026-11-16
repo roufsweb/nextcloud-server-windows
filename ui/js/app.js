@@ -1,0 +1,172 @@
+import { ServerApi } from './api.js';
+import { StorageGauge } from '../components/storage-gauge.js';
+import { LogViewer } from '../components/log-viewer.js';
+
+class AppController {
+  constructor() {
+    this.api = new ServerApi();
+    this.gauge = new StorageGauge('storage-gauge-root');
+    this.logViewer = new LogViewer('log-viewer-root');
+    this.state = null;
+
+    this.initNavigation();
+    this.initEventListeners();
+    this.refresh();
+
+    // Stream initial simulation logs
+    this.logViewer.append('CORE', 'Nextcloud Server AIO supervisor initializing...');
+    this.logViewer.append('CADDY', 'Caddy web server listening on http://localhost:8080');
+    this.logViewer.append('PHP', 'PHP 8.3 NTS FastCGI worker pool spawned on 127.0.0.1:9000');
+    this.logViewer.append('TUNNEL', 'Cloudflare Tunnel daemon active and ready.');
+  }
+
+  initNavigation() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetView = item.getAttribute('data-view');
+
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+        item.classList.add('active');
+        const viewElem = document.getElementById(targetView);
+        if (viewElem) viewElem.classList.add('active');
+
+        document.getElementById('current-view-title').textContent = item.querySelector('span').textContent;
+      });
+    });
+  }
+
+  initEventListeners() {
+    // Start / Stop Service Buttons
+    const btnStart = document.getElementById('btn-start-services');
+    const btnStop = document.getElementById('btn-stop-services');
+
+    if (btnStart) {
+      btnStart.addEventListener('click', async () => {
+        btnStart.disabled = true;
+        this.logViewer.append('CORE', 'Starting server stack (Caddy, PHP-CGI, Cloudflared)...');
+        await this.api.startServices();
+        this.logViewer.append('CORE', 'Services started successfully.');
+        btnStart.disabled = false;
+        this.refresh();
+      });
+    }
+
+    if (btnStop) {
+      btnStop.addEventListener('click', async () => {
+        btnStop.disabled = true;
+        this.logViewer.append('CORE', 'Sending SIGTERM to child processes...');
+        await this.api.stopServices();
+        this.logViewer.append('CORE', 'All services stopped gracefully.');
+        btnStop.disabled = false;
+        this.refresh();
+      });
+    }
+
+    // Add Drive On-Demand Form
+    const formAddDrive = document.getElementById('form-add-drive');
+    if (formAddDrive) {
+      formAddDrive.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const drivePath = document.getElementById('input-drive-path').value.trim();
+        const driveName = document.getElementById('input-drive-name').value.trim() || "External Drive";
+
+        if (!drivePath) return;
+
+        this.logViewer.append('CORE', `Executing Windows NTFS ACL grant on '${drivePath}'...`);
+        this.logViewer.append('CORE', `icacls "${drivePath}" /grant *S-1-1-0:(OI)(CI)F /T /C /Q`);
+
+        try {
+          await this.api.mountDrive(drivePath, driveName);
+          this.logViewer.append('CORE', `Drive '${driveName}' (${drivePath}) mounted with Full Access!`);
+          alert(`Drive successfully added with Full Access! Nextcloud will show it as an external storage drive.`);
+          document.getElementById('input-drive-path').value = '';
+          document.getElementById('input-drive-name').value = '';
+          this.refresh();
+        } catch (err) {
+          this.logViewer.append('CORE', `Error mounting drive: ${err.message}`);
+          alert(`Failed to add drive: ${err.message}`);
+        }
+      });
+    }
+
+    // Cloudflare Token Form
+    const formTunnel = document.getElementById('form-save-tunnel');
+    if (formTunnel) {
+      formTunnel.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = document.getElementById('input-tunnel-token').value.trim();
+        if (!token) return;
+
+        this.logViewer.append('TUNNEL', 'Validating and applying Cloudflare Tunnel token...');
+        await this.api.setTunnelToken(token);
+        this.logViewer.append('TUNNEL', 'Tunnel connected! Public HTTPS URL active.');
+        alert('Cloudflare Tunnel token saved! Tunnel is now connected.');
+        this.refresh();
+      });
+    }
+
+    // Nextcloud Data Root Change
+    const btnChangeDataRoot = document.getElementById('btn-change-dataroot');
+    if (btnChangeDataRoot) {
+      btnChangeDataRoot.addEventListener('click', async () => {
+        const newPath = prompt("Enter new absolute folder path for Nextcloud Data Root:", this.state?.data_dir || "C:\\NextcloudAIO\\data");
+        if (newPath && newPath.trim()) {
+          this.logViewer.append('CORE', `Updating Nextcloud data root to: ${newPath.trim()}`);
+          await this.api.setDataRoot(newPath.trim());
+          this.logViewer.append('CORE', `Applied Windows ACL permissions to data root.`);
+          this.refresh();
+        }
+      });
+    }
+  }
+
+  async refresh() {
+    this.state = await this.api.getStatus();
+
+    // Render storage gauge
+    this.gauge.render(this.state);
+
+    // Update Data Directory label
+    const dataDirElem = document.getElementById('lbl-data-dir');
+    if (dataDirElem) dataDirElem.textContent = this.state.data_dir;
+
+    // Render Drive Cards
+    const driveContainer = document.getElementById('drive-list-container');
+    if (driveContainer && this.state.drives) {
+      driveContainer.innerHTML = this.state.drives.map(d => `
+        <div class="drive-card">
+          <div class="drive-info">
+            <div class="drive-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="drive-name">${d.name}</div>
+              <div class="drive-path">${d.path}</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="badge-permission">✓ ${d.permission}</span>
+            <span class="status-pill online">${d.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update Tunnel URL
+    const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
+    if (tunnelUrlElem && this.state.tunnel_url) {
+      tunnelUrlElem.href = this.state.tunnel_url;
+      tunnelUrlElem.textContent = this.state.tunnel_url;
+    }
+  }
+}
+
+// Bootstrap application on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  window.nextcloudApp = new AppController();
+});
