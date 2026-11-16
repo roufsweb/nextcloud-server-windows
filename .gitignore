@@ -1,0 +1,71 @@
+# Nextcloud Server for Windows - Git Ignore
+
+# Secrets, Credentials, Tokens (CRITICAL FOR GITHUB TOS COMPLIANCE)
+*.token
+*.env
+*.env.local
+*.key
+*.pem
+*.crt
+*.pfx
+cloudflare.token
+cloudflared_token.txt
+credentials.json
+cert.pem
+privkey.pem
+secrets/
+
+# Large Binaries & Bundles (Prevent Git LFS / Repository bloat / Copyright bans)
+# Binary releases should be managed via GitHub Releases, NOT raw git repo
+*.exe
+*.dll
+*.msi
+*.zip
+*.tar.gz
+*.7z
+bin/
+server-pack/
+dist/
+dist-windows/
+runtime/
+vendor/bin/
+
+# Nextcloud Runtime Data & Storage
+data/
+nextcloud/data/
+nextcloud/config/config.php
+nextcloud/updater/
+nextcloud/apps/*
+!nextcloud/apps/.gitkeep
+tmp/
+temp/
+logs/
+*.log
+
+# Database Files
+*.sqlite
+*.sqlite3
+*.db
+mariadb/data/
+postgres/data/
+
+# Rust Build Artifacts
+target/
+**/*.rs.bk
+Cargo.lock.backup
+
+# Node / Web Frontend Artifacts (if UI built)
+node_modules/
+.svelte-kit/
+.parcel-cache/
+
+# OS-Specific
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE and Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
