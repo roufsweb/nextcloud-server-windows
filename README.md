@@ -1,10 +1,21 @@
+<div align="center">
+
+![Nextcloud Server for Windows Showcase Banner](docs/img/banner.png)
+
 # Nextcloud Server for Windows (All-In-One Portable)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![Platform: Windows x64](https://img.shields.io/badge/Platform-Windows_x64-0078D6.svg)](#architecture)
-[![Status: In Development](https://img.shields.io/badge/Status-Active_Development-brightgreen.svg)](#)
+[![Platform: Windows x64](https://img.shields.io/badge/Platform-Windows_10%20%7C%2011%20%7C%20Server_x64-0078D6.svg)](#architecture)
+[![Total Size: 357 MB](https://img.shields.io/badge/Release_Size-357_MB_(<500MB)-success.svg)](#distribution)
+[![Remote Access: Cloudflare Tunnel](https://img.shields.io/badge/Tunnel-Cloudflared_Token-F38020.svg)](#remote-access-cloudflare-tunnel)
+[![Status: Production Ready](https://img.shields.io/badge/Status-Production_Ready-brightgreen.svg)](#)
 
-A high-performance, ultra-lite, portable **All-In-One Nextcloud Server for Windows** featuring native Cloudflare Tunnel (`cloudflared`) token support, direct local drive access, optimized PHP 8.3 NTS FastCGI runtime, and a native Rust desktop supervisor.
+**High-Performance, Zero-Setup, Portable Nextcloud 30 Server for 64-bit Windows.**  
+Features native Cloudflare Tunnel (`cloudflared`) token support, direct drive NTFS permissions, optimized PHP 8.3 NTS FastCGI, OPcache JIT, Redis transactional locking, and a native Rust desktop supervisor.
+
+[Features](#key-features) • [Quick Start](#quick-start-windows) • [Architecture](#architecture) • [Talk & Media](#nextcloud-talk-webrtc-architecture) • [Documentation](docs/index.html)
+
+</div>
 
 ---
 

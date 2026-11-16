@@ -133,6 +133,33 @@ switch ($cmd) {
         }
         break;
 
+    case 'send-photo':
+        $photoPath = $argv[2] ?? '';
+        $caption = $argv[3] ?? '';
+        if (!file_exists($photoPath)) {
+            fwrite(STDERR, "Error: Photo file does not exist at '{$photoPath}'.\n");
+            exit(1);
+        }
+        $config = load_config();
+        $token = $config['bot_token'];
+        $chatId = $config['allowed_chat_id'];
+
+        $ch = curl_init("https://api.telegram.org/bot{$token}/sendPhoto");
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS => [
+                'chat_id' => $chatId,
+                'photo' => new CURLFile($photoPath),
+                'caption' => $caption,
+                'parse_mode' => 'Markdown'
+            ]
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        echo $response . "\n";
+        break;
+
     case 'send-interactive':
         // Usage: php telegram_cli.php send-interactive "Task is running..." '[["Queue","queue"],["Stop","stop"]]'
         $text = $argv[2] ?? '';

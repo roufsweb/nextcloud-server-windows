@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1280px;
+      height: 640px;
+      background: #090d13;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 80px;
+      position: relative;
+      overflow: hidden;
+      color: #f0f6fc;
+    }
+    .bg-gradient {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      top: -200px;
+      right: -100px;
+      background: radial-gradient(circle, rgba(0, 130, 201, 0.25) 0%, rgba(0, 210, 255, 0.08) 50%, transparent 75%);
+      filter: blur(60px);
+      z-index: 1;
+    }
+    .bg-dots {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+      z-index: 1;
+    }
+    .content-left {
+      position: relative;
+      z-index: 2;
+      max-width: 640px;
+    }
+    .brand-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(0, 130, 201, 0.15);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #00d2ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.2px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, #00d2ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 1.25rem;
+      color: #8b949e;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+    .pill-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .feature-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(22, 27, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #c9d1d9;
+      backdrop-filter: blur(8px);
+    }
+    .feature-pill svg {
+      width: 16px;
+      height: 16px;
+      color: #00d2ff;
+    }
+    .content-right {
+      position: relative;
+      z-index: 2;
+      width: 440px;
+    }
+    .preview-card {
+      background: rgba(22, 27, 34, 0.85);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 130, 201, 0.2);
+      backdrop-filter: blur(16px);
+    }
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .status-badge {
+      padding: 4px 10px;
+      background: rgba(35, 134, 54, 0.2);
+      border: 1px solid rgba(59, 185, 80, 0.4);
+      color: #3fb950;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .mini-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .mini-fill {
+      width: 38%;
+      height: 100%;
+      background: linear-gradient(90deg, #0082c9, #00d2ff);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="bg-dots"></div>
+
+  <div class="content-left">
+    <div class="brand-tag">
+      <span>Windows All-In-One Edition</span>
+    </div>
+    <h1 class="title">Nextcloud Server for Windows</h1>
+    <p class="subtitle">
+      Ultra-Lite Portable Nextcloud 30 with Native Cloudflare Tunnel, Direct Physical Drive Access, and High-Performance Rust Supervisor.
+    </p>
+
+    <div class="pill-grid">
+      <div class="feature-pill">⚡ Rust Supervisor (3.8 MB)</div>
+      <div class="feature-pill">🔒 Zero-Config Cloudflare Tunnel</div>
+      <div class="feature-pill">💽 Full NTFS Drive Access</div>
+      <div class="feature-pill">🚀 PHP 8.3 NTS FastCGI</div>
+      <div class="feature-pill">📦 Under 500 MB Budget</div>
+      <div class="feature-pill">100% Free & Open Source</div>
+    </div>
+  </div>
+
+  <div class="content-right">
+    <div class="preview-card">
+      <div class="card-row">
+        <span class="card-title">Desktop Dashboard</span>
+        <span class="status-badge">● Online (HTTP/3)</span>
+      </div>
+      <div style="font-size: 0.8rem; color:#8b949e; margin-bottom: 12px;">
+        <div>Server: <strong>Caddy FastCGI :8080</strong></div>
+        <div>Tunnel: <strong>Active (HTTPS Worldwide)</strong></div>
+        <div>Permissions: <strong>Full Control (*S-1-1-0)</strong></div>
+      </div>
+      <div style="font-size: 0.75rem; color:#8b949e; display:flex; justify-content:space-between;">
+        <span>Storage: 450 GB / 1000 GB</span>
+        <span>38% Used</span>
+      </div>
+      <div class="mini-bar">
+        <div class="mini-fill"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
