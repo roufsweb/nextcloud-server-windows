@@ -14,6 +14,8 @@ pub struct AppConfig {
     pub cloudflared_path: PathBuf,
     pub external_drives: Vec<PathBuf>,
     pub admin_username: Option<String>,
+    #[serde(default)]
+    pub trusted_domains: Vec<String>,
 }
 
 impl Default for AppConfig {
@@ -44,6 +46,7 @@ impl Default for AppConfig {
             cloudflared_path: cloudflared_bin,
             external_drives: Vec::new(),
             admin_username: Some("admin".to_string()),
+            trusted_domains: Vec::new(),
         }
     }
 }

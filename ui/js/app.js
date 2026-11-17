@@ -132,6 +132,38 @@ class AppController {
       });
     }
 
+    // Server Web Port Form
+    const formPort = document.getElementById('form-change-port');
+    if (formPort) {
+      formPort.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const p = document.getElementById('input-server-port').value.trim();
+        if (p) {
+          this.logViewer.append('CORE', `Configuring HTTP server port to ${p}...`);
+          await this.api.setPort(p);
+          this.logViewer.append('CORE', `Server port set to ${p}.`);
+          alert(`Server port updated to ${p}! Restart server to apply.`);
+          this.refresh();
+        }
+      });
+    }
+
+    // Trusted Domains Form
+    const formDomain = document.getElementById('form-add-domain');
+    if (formDomain) {
+      formDomain.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const domain = document.getElementById('input-new-domain').value.trim();
+        if (domain) {
+          this.logViewer.append('CORE', `Adding trusted domain: ${domain}...`);
+          await this.api.addTrustedDomain(domain);
+          this.logViewer.append('CORE', `Trusted domain '${domain}' added.`);
+          document.getElementById('input-new-domain').value = '';
+          this.refreshDomains();
+        }
+      });
+    }
+
     // In-App Admin User Management Form
     const formUpdateAdmin = document.getElementById('form-update-admin');
     if (formUpdateAdmin) {
@@ -154,12 +186,11 @@ class AppController {
   initSplashScreen() {
     const splash = document.getElementById('splash-screen');
     const splashLogoContainer = document.getElementById('splash-logo-container');
-    const splashLogoImg = document.getElementById('splash-logo-img');
     const targetBrand = document.querySelector('.sidebar .brand-icon');
 
     if (!splash || !targetBrand) return;
 
-    // After 900ms of initial loading, smoothly transition the large logo into the top-left sidebar brand
+    // After 900ms of initial loading, smoothly transition the pure cloud logo into the sidebar
     setTimeout(() => {
       const targetRect = targetBrand.getBoundingClientRect();
       const sourceRect = splashLogoContainer.getBoundingClientRect();
@@ -168,11 +199,8 @@ class AppController {
       const deltaY = targetRect.top + (targetRect.height / 2) - (sourceRect.top + (sourceRect.height / 2));
       const scale = targetRect.width / sourceRect.width;
 
-      // Animate logo scaling and gliding to the top-left sidebar brand position
+      // Animate pure cloud SVG scaling and gliding to the top-left sidebar brand position
       splashLogoContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale})`;
-      if (splashLogoImg) {
-        splashLogoImg.style.borderRadius = 'var(--radius-md)';
-      }
 
       // Fade out background and text smoothly
       splash.classList.add('splash-leaving');
@@ -196,12 +224,27 @@ class AppController {
       if (inputAdminUser) inputAdminUser.value = adminData.username;
     }
 
+    // Update Port Field
+    const inputPort = document.getElementById('input-server-port');
+    if (inputPort && this.state.server_port) {
+      inputPort.value = this.state.server_port;
+    }
+
+    // Update Active Tunnel display
+    const lblTunnelActive = document.getElementById('lbl-tunnel-active-url');
+    if (lblTunnelActive && this.state.tunnel_url) {
+      lblTunnelActive.textContent = `Active: ${this.state.tunnel_url}`;
+    }
+
     // Render storage gauge
     this.gauge.render(this.state);
 
     // Update Data Directory label
     const dataDirElem = document.getElementById('lbl-data-dir');
     if (dataDirElem) dataDirElem.textContent = this.state.data_dir;
+
+    // Render Trusted Domains list
+    this.refreshDomains();
 
     // Render Drive Cards
     const driveContainer = document.getElementById('drive-list-container');
@@ -249,6 +292,29 @@ class AppController {
       tunnelUrlElem.href = this.state.tunnel_url;
       tunnelUrlElem.textContent = this.state.tunnel_url;
     }
+  }
+
+  async refreshDomains() {
+    const listElem = document.getElementById('trusted-domains-list');
+    if (!listElem) return;
+    const domains = await this.api.getTrustedDomains();
+    // Exclude localhost, 127.0.0.1 and ::1 from UI clutter
+    const customDomains = (domains || []).filter(d => d !== 'localhost' && d !== '127.0.0.1' && d !== '::1');
+    listElem.innerHTML = customDomains.map(d => `
+      <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3); padding:4px 10px; border-radius:6px; font-size:0.85rem; color:var(--accent-amber);">
+        ${d}
+        <button type="button" data-domain="${d}" class="btn-remove-domain" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0 2px;">×</button>
+      </span>
+    `).join('') || '<span style="font-size:0.82rem; color:var(--text-muted);">No custom domains added yet.</span>';
+
+    listElem.querySelectorAll('.btn-remove-domain').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const dom = btn.getAttribute('data-domain');
+        await this.api.removeTrustedDomain(dom);
+        this.logViewer.append('CORE', `Removed trusted domain: ${dom}`);
+        this.refreshDomains();
+      });
+    });
   }
 }
 

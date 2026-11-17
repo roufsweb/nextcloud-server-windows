@@ -1,22 +1,28 @@
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card: rgba(22, 27, 34, 0.85);
-  --bg-card-hover: rgba(30, 36, 46, 0.95);
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-focus: #0082c9;
+  --bg-primary: #121110;
+  --bg-secondary: #191715;
+  --bg-card: rgba(28, 25, 23, 0.85);
+  --bg-card-hover: rgba(41, 37, 36, 0.95);
+  --border-color: rgba(245, 158, 11, 0.14);
+  --border-focus: #f59e0b;
   
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
+  --text-primary: #fafaf9;
+  --text-secondary: #a8a29e;
+  --text-muted: #78716c;
   
-  --accent-blue: #0082c9;
-  --accent-blue-hover: #006da8;
-  --accent-cyan: #00d2ff;
-  --status-green: #238636;
-  --status-green-glow: rgba(35, 134, 54, 0.4);
-  --status-red: #da3633;
-  --status-yellow: #d29922;
+  --accent-amber: #f59e0b;
+  --accent-amber-hover: #d97706;
+  --accent-gold: #fbbf24;
+  --accent-glow: rgba(245, 158, 11, 0.35);
+
+  --accent-blue: #f59e0b;
+  --accent-blue-hover: #d97706;
+  --accent-cyan: #fbbf24;
+  
+  --status-green: #10b981;
+  --status-green-glow: rgba(16, 185, 129, 0.3);
+  --status-red: #ef4444;
+  --status-yellow: #f59e0b;
 
   --sidebar-width: 240px;
   --header-height: 60px;
@@ -72,18 +78,16 @@ body {
 .brand-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-  border-radius: var(--radius-md);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 130, 201, 0.3);
 }
 
 .brand-icon svg {
-  width: 20px;
-  height: 20px;
-  fill: #fff;
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.4));
 }
 
 .brand-title {

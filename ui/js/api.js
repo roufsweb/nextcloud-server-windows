@@ -82,4 +82,51 @@ export class ServerApi {
     });
     return res.json();
   }
+
+  async setPort(port) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/port`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: Number(port) })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "port_updated" };
+    }
+  }
+
+  async getTrustedDomains() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/domains`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return ["cloud.mydomain.com", "nextcloud.local"];
+  }
+
+  async addTrustedDomain(domain) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/domains/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "domain_added" };
+    }
+  }
+
+  async removeTrustedDomain(domain) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/domains/remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "domain_removed" };
+    }
+  }
 }

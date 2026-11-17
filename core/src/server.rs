@@ -58,6 +58,16 @@ struct AdminUpdateRequest {
     password: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct PortChangeRequest {
+    port: u16,
+}
+
+#[derive(Deserialize)]
+struct DomainRequest {
+    domain: String,
+}
+
 pub async fn run_dashboard_server(
     port: u16,
     config: Arc<Mutex<AppConfig>>,
@@ -155,6 +165,41 @@ pub async fn run_dashboard_server(
                     ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"data_root_updated\"}".into())
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
+                }
+            } else if method == "POST" && uri == "/api/config/port" {
+                if let Ok(req) = serde_json::from_str::<PortChangeRequest>(body) {
+                    let mut cfg = config_clone.lock().await;
+                    cfg.server_port = req.port;
+                    let _ = cfg.save(config_path);
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"port_updated\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid port\"}".into())
+                }
+            } else if uri == "/api/config/domains" {
+                let cfg = config_clone.lock().await;
+                let domains = cfg.trusted_domains.clone();
+                ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&domains).unwrap_or_else(|_| "[]".into()))
+            } else if method == "POST" && uri == "/api/config/domains/add" {
+                if let Ok(req) = serde_json::from_str::<DomainRequest>(body) {
+                    let mut cfg = config_clone.lock().await;
+                    let dom = req.domain.trim().to_lowercase();
+                    if !dom.is_empty() && !cfg.trusted_domains.contains(&dom) {
+                        cfg.trusted_domains.push(dom);
+                        let _ = cfg.save(config_path);
+                    }
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"domain_added\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid domain\"}".into())
+                }
+            } else if method == "POST" && uri == "/api/config/domains/remove" {
+                if let Ok(req) = serde_json::from_str::<DomainRequest>(body) {
+                    let mut cfg = config_clone.lock().await;
+                    let dom = req.domain.trim().to_lowercase();
+                    cfg.trusted_domains.retain(|d| d != &dom);
+                    let _ = cfg.save(config_path);
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"domain_removed\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid domain\"}".into())
                 }
             } else if uri == "/api/users/admin" {
                 let cfg = config_clone.lock().await;

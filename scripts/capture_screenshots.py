@@ -16,12 +16,11 @@ UI_DIR = BASE_DIR / "ui"
 OUTPUT_DIR = BASE_DIR / "docs" / "img" / "screenshots"
 
 VIEWS = [
-    ("00_splash_screen.png", "splash", "Startup Splash Screen & Glowing Centered Logo", 350),
-    ("01_dashboard.png", "view-dashboard", "Clean Dashboard Overview & Service Cards", 2800),
-    ("02_storage_drives.png", "view-storage", "Clean Storage & Drives (Direct NTFS Access)", 2800),
-    ("03_cloudflare_tunnel.png", "view-tunnel", "Clean Cloudflare Tunnel Token Configuration", 2800),
-    ("04_users_security.png", "view-users", "Clean Users & Administrative Security", 2800),
-    ("05_in_app_logs.png", "view-logs", "Clean In-App Real-Time Log Console", 2800),
+    ("00_splash_screen.png", "splash", "Startup Warm Splash Screen (Pure Cloud & by roufsweb)", 350),
+    ("01_dashboard.png", "view-dashboard", "Warm Dashboard Overview & Service Cards", 2800),
+    ("02_storage_drives.png", "view-storage", "Storage & Drives (Direct NTFS Access)", 2800),
+    ("03_config.png", "view-config", "Consolidated Config (Token, Port, Trusted Domains, Data Root)", 2800),
+    ("04_in_app_logs.png", "view-logs", "In-App Real-Time Log Console", 2800),
 ]
 
 def main():
