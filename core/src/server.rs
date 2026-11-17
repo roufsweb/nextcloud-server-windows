@@ -102,6 +102,65 @@ pub async fn run_dashboard_server(
             let method = first_line[0];
             let uri = first_line[1];
 
+            // Extract HTTP Headers
+            let mut host_header = "";
+            let mut origin_header = "";
+
+            for line in &lines[1..] {
+                if line.is_empty() { break; }
+                let lower = line.to_lowercase();
+                if lower.starts_with("host:") {
+                    host_header = line.splitn(2, ':').nth(1).unwrap_or("").trim();
+                } else if lower.starts_with("origin:") {
+                    origin_header = line.splitn(2, ':').nth(1).unwrap_or("").trim();
+                }
+            }
+
+            // Security Enforcement 1: Loopback Host Header (DNS Rebinding Protection)
+            let host_base = host_header.split(':').next().unwrap_or("").trim();
+            let is_valid_host = host_header.is_empty()
+                || host_base == "localhost"
+                || host_base == "127.0.0.1"
+                || host_base == "[::1]";
+
+            if !is_valid_host {
+                let err_body = "{\"error\":\"Forbidden: Invalid Host Header (Loopback Only)\"}";
+                let response = format!(
+                    "HTTP/1.1 403 Forbidden\r\nContent-Type: application/json\r\nContent-Length: {}\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n{}",
+                    err_body.len(), err_body
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+                return;
+            }
+
+            // Security Enforcement 2: Cross-Origin API Mutation Protection (CSRF & External Site Exploit Defense)
+            let is_local_origin = origin_header.is_empty()
+                || origin_header.starts_with("http://localhost")
+                || origin_header.starts_with("http://127.0.0.1")
+                || origin_header.starts_with("tauri://localhost")
+                || origin_header == "null";
+
+            if uri.starts_with("/api/") && method != "GET" && method != "OPTIONS" && !is_local_origin {
+                let err_body = "{\"error\":\"Forbidden: Cross-Origin API mutation blocked\"}";
+                let response = format!(
+                    "HTTP/1.1 403 Forbidden\r\nContent-Type: application/json\r\nContent-Length: {}\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n{}",
+                    err_body.len(), err_body
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+                return;
+            }
+
+            // Preflight OPTIONS handler
+            if method == "OPTIONS" {
+                let allow_origin = if is_local_origin && !origin_header.is_empty() { origin_header } else { "null" };
+                let options_resp = format!(
+                    "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: {}\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nX-Content-Type-Options: nosniff\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                    allow_origin
+                );
+                let _ = socket.write_all(options_resp.as_bytes()).await;
+                return;
+            }
+
             // Extract body if POST
             let body = req_str.split("\r\n\r\n").nth(1).unwrap_or("");
 
@@ -301,9 +360,17 @@ pub async fn run_dashboard_server(
                 }
             };
 
+            let allow_origin_hdr = if is_local_origin && !origin_header.is_empty() {
+                format!("Access-Control-Allow-Origin: {}\r\nVary: Origin\r\n", origin_header)
+            } else if origin_header.is_empty() {
+                "Access-Control-Allow-Origin: *\r\n".to_string()
+            } else {
+                "".to_string()
+            };
+
             let response = format!(
-                "{}\r\nContent-Type: {}\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n{}",
-                status_line, content_type, body_response.len(), body_response
+                "{}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}X-Content-Type-Options: nosniff\r\nX-Frame-Options: DENY\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n{}",
+                status_line, content_type, body_response.len(), allow_origin_hdr, body_response
             );
 
             let _ = socket.write_all(response.as_bytes()).await;

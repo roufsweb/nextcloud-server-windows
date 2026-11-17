@@ -53,17 +53,28 @@ def report(name, passed, details=""):
     if not passed:
         print(f"{C_RED}CRITICAL TEST FAILURE in '{name}'!{C_RESET}")
 
-def http_req(endpoint, method="GET", data=None):
+def http_req(endpoint, method="GET", data=None, extra_headers=None):
     url = f"{BASE_URL}{endpoint}"
     headers = {"Content-Type": "application/json"} if data else {}
+    if extra_headers:
+        headers.update(extra_headers)
     body = json.dumps(data).encode("utf-8") if data else None
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        content = resp.read().decode("utf-8")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            content = resp.read().decode("utf-8")
+            try:
+                parsed = json.loads(content)
+            except:
+                parsed = content
+            return resp.status, parsed
+    except urllib.error.HTTPError as err:
+        content = err.read().decode("utf-8")
         try:
-            return resp.status, json.loads(content)
+            parsed = json.loads(content)
         except:
-            return resp.status, content
+            parsed = content
+        return err.code, parsed
 
 # ==============================================================================
 # 1. Extraction & Package Hygiene Test
@@ -219,6 +230,20 @@ def test_supervisor_rest_api():
         backup_file = backup_resp.get("backup_file", "")
         report("Backup file exists on disk", os.path.exists(backup_file) or os.path.exists(str(SANDBOX_DIR / "custom_nextcloud_data" / "backups")), f"File: {backup_file}")
 
+        # Test 10: Loopback Security & DNS Rebinding Protection (Host Header Enforcement)
+        code, host_err = http_req("/api/status", extra_headers={"Host": "evil-attacker.com"})
+        report("Supervisor rejects external Host header with 403 Forbidden", code == 403, f"Code: {code}, Resp: {host_err}")
+
+        code, host_ok = http_req("/api/status", extra_headers={"Host": f"127.0.0.1:{TEST_PORT}"})
+        report("Supervisor accepts loopback Host header with 200 OK", code == 200, f"Code: {code}")
+
+        # Test 11: CSRF & Cross-Origin API Mutation Protection
+        code, origin_err = http_req("/api/config/port", "POST", {"port": 8090}, extra_headers={"Origin": "https://malicious-website.org"})
+        report("Supervisor blocks cross-origin API mutation with 403 Forbidden", code == 403, f"Code: {code}, Resp: {origin_err}")
+
+        code, origin_ok = http_req("/api/config/port", "POST", {"port": 8085}, extra_headers={"Origin": f"http://localhost:{TEST_PORT}"})
+        report("Supervisor allows local Origin API mutation with 200 OK", code == 200, f"Code: {code}")
+
     finally:
         print("  -> Stopping supervisor daemon...")
         proc.terminate()
@@ -342,6 +367,14 @@ def test_nextcloud_best_practices_audit():
     report("Nextcloud autoconfig default dbtype: sqlite", "'dbtype'        => 'sqlite'" in auto_content or "'dbtype' => 'sqlite'" in auto_content)
     report("Nextcloud sample config dbtype: sqlite", "'dbtype' => 'sqlite'" in cfg_content)
     report("Nextcloud sample config sqlite.journal_mode: WAL", "'sqlite.journal_mode' => 'WAL'" in cfg_content)
+
+    # 7. Caddyfile Security Hardening & Cloudflare Isolation Audit
+    caddy_file = BASE_DIR / "config" / "caddy" / "Caddyfile"
+    caddy_content = caddy_file.read_text()
+    report("Caddy blocks supervisor internal APIs (/api/services/*)", "path /api/services/*" in caddy_content)
+    report("Caddy blocks external access to /_dashboard*", "path /_dashboard*" in caddy_content and "not remote_ip" in caddy_content)
+    report("Nextcloud dual-mode conditional overwriteprotocol configured", "'overwriteprotocol' => (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])" in cfg_content)
+    report("Nextcloud Cloudflare CF-Connecting-IP header configured", "'HTTP_CF_CONNECTING_IP'" in cfg_content)
 
 # ==============================================================================
 # 5. High-Bitrate Media Generation & Stress Benchmark

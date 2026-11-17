@@ -18,19 +18,22 @@ $CONFIG = [
   'installed' => false,
 
   // ----------------------------------------------------------------------------
-  // 2. Network, Domain & Cloudflare Tunnel Proxy Configuration
+  // 2. Network, Domain & Cloudflare Tunnel Proxy Configuration (Dual-Mode)
   // ----------------------------------------------------------------------------
   'trusted_domains' => [
     0 => 'localhost:8080',
     1 => '127.0.0.1:8080',
-    2 => 'localhost:8081',
-    3 => '*.trycloudflare.com',
-    4 => '*.yourdomain.com',
+    2 => 'localhost',
+    3 => '127.0.0.1',
+    4 => '*.trycloudflare.com',
+    5 => '*.yourdomain.com',
   ],
 
-  // Overwrite protocol ensures HTTPS redirection and valid WebDAV links over Cloudflare
-  'overwriteprotocol' => 'https',
-  'overwrite.cli.url' => 'http://localhost:8080',
+  // Seamless Dual-Mode: Automatically use HTTPS over Cloudflare Tunnel while preserving local HTTP
+  'overwriteprotocol' => (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https' : '',
+  'overwrite.cli.url' => (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') === false && strpos($_SERVER['HTTP_HOST'], '127.0.0.1') === false)
+    ? 'https://' . ($_SERVER['HTTP_HOST'] ?? 'cloud.yourdomain.com')
+    : 'http://localhost:8080',
   'trusted_proxies' => [
     '127.0.0.1',
     '::1',
@@ -39,8 +42,8 @@ $CONFIG = [
     '192.168.0.0/16',
   ],
   'forwarded_for_headers' => [
-    'HTTP_X_FORWARDED_FOR',
     'HTTP_CF_CONNECTING_IP',
+    'HTTP_X_FORWARDED_FOR',
   ],
 
   // ----------------------------------------------------------------------------

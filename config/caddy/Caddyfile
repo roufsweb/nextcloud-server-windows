@@ -24,7 +24,7 @@
     redir /.well-known/webfinger /index.php/.well-known/webfinger 301
     redir /.well-known/nodeinfo /index.php/.well-known/nodeinfo 301
 
-    # Block access to hidden files and sensitive directories
+    # Block access to hidden files, sensitive directories, and internal supervisor APIs
     @forbidden {
         path /.htaccess
         path /data/*
@@ -41,8 +41,21 @@
         path /indie*
         path /db_*
         path /console*
+        path /api/services/*
+        path /api/drives/*
+        path /api/tunnel/*
+        path /api/config/*
+        path /api/database/*
+        path /api/users/*
     }
     respond @forbidden 404
+
+    # Restrict internal Desktop Dashboard route to local loopback / LAN only
+    @external_dashboard {
+        path /_dashboard*
+        not remote_ip 127.0.0.1 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    }
+    respond @external_dashboard 403
 
     # PHP FastCGI handler with immediate response streaming (prevents Cloudflare 524 timeouts)
     php_fastcgi 127.0.0.1:9000 {
