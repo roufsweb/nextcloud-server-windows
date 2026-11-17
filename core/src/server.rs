@@ -43,6 +43,11 @@ struct MountDriveRequest {
 }
 
 #[derive(Deserialize)]
+struct UnmountDriveRequest {
+    path: String,
+}
+
+#[derive(Deserialize)]
 struct TunnelTokenRequest {
     token: String,
 }
@@ -139,6 +144,16 @@ pub async fn run_dashboard_server(
                         let _ = cfg.save(config_path);
                     }
                     ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"success\"}".into())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid request\"}".into())
+                }
+            } else if method == "POST" && uri == "/api/drives/unmount" {
+                if let Ok(req) = serde_json::from_str::<UnmountDriveRequest>(body) {
+                    let drive_path = std::path::PathBuf::from(&req.path);
+                    let mut cfg = config_clone.lock().await;
+                    cfg.external_drives.retain(|d| d != &drive_path);
+                    let _ = cfg.save(config_path);
+                    ("HTTP/1.1 200 OK", "application/json", "{\"status\":\"unmounted\"}".into())
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid request\"}".into())
                 }

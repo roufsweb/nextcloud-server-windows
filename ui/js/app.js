@@ -34,7 +34,10 @@ class AppController {
         const viewElem = document.getElementById(targetView);
         if (viewElem) viewElem.classList.add('active');
 
-        document.getElementById('current-view-title').textContent = item.querySelector('span').textContent;
+        const titleElem = document.getElementById('current-view-title');
+        if (titleElem) {
+          titleElem.textContent = item.querySelector('span')?.textContent || 'Dashboard';
+        }
       });
     });
 
@@ -49,29 +52,72 @@ class AppController {
   }
 
   initEventListeners() {
-    // Start / Stop Service Buttons
-    const btnStart = document.getElementById('btn-start-services');
-    const btnStop = document.getElementById('btn-stop-services');
+    // State-aware Server Toggle Button
+    const btnToggle = document.getElementById('btn-toggle-server');
+    if (btnToggle) {
+      btnToggle.addEventListener('click', async () => {
+        btnToggle.disabled = true;
+        const isRunning = this.state?.running ?? true;
 
-    if (btnStart) {
-      btnStart.addEventListener('click', async () => {
-        btnStart.disabled = true;
-        this.logViewer.append('CORE', 'Starting server stack (Caddy, PHP-CGI, Cloudflared)...');
-        await this.api.startServices();
-        this.logViewer.append('CORE', 'Services started successfully.');
-        btnStart.disabled = false;
-        this.refresh();
+        if (isRunning) {
+          this.logViewer.append('CORE', 'Sending SIGTERM to child processes...');
+          await this.api.stopServices();
+          this.logViewer.append('CORE', 'All services stopped gracefully.');
+        } else {
+          this.logViewer.append('CORE', 'Starting server stack (Caddy, PHP-CGI, Cloudflared)...');
+          await this.api.startServices();
+          this.logViewer.append('CORE', 'Services started successfully.');
+        }
+
+        btnToggle.disabled = false;
+        await this.refresh();
       });
     }
 
+    // Retain hidden legacy start/stop buttons for full backwards compatibility
+    const btnStart = document.getElementById('btn-start-services');
+    if (btnStart) {
+      btnStart.addEventListener('click', async () => {
+        this.logViewer.append('CORE', 'Starting server stack (Caddy, PHP-CGI, Cloudflared)...');
+        await this.api.startServices();
+        this.logViewer.append('CORE', 'Services started successfully.');
+        await this.refresh();
+      });
+    }
+
+    const btnStop = document.getElementById('btn-stop-services');
     if (btnStop) {
       btnStop.addEventListener('click', async () => {
-        btnStop.disabled = true;
         this.logViewer.append('CORE', 'Sending SIGTERM to child processes...');
         await this.api.stopServices();
         this.logViewer.append('CORE', 'All services stopped gracefully.');
-        btnStop.disabled = false;
-        this.refresh();
+        await this.refresh();
+      });
+    }
+
+    // Copy endpoint buttons
+    document.querySelectorAll('.btn-copy-icon').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const copyVal = btn.getAttribute('data-copy');
+        if (copyVal) {
+          navigator.clipboard.writeText(copyVal);
+          const origHtml = btn.innerHTML;
+          btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+          setTimeout(() => { btn.innerHTML = origHtml; }, 1500);
+        }
+      });
+    });
+
+    // Browse Folder for Drive Form
+    const btnBrowseDrive = document.getElementById('btn-browse-drive');
+    if (btnBrowseDrive) {
+      btnBrowseDrive.addEventListener('click', () => {
+        const pathInput = document.getElementById('input-drive-path');
+        const chosen = prompt("Enter drive letter or absolute path to mount (e.g. D:\\ or E:\\Storage):", pathInput.value || "D:\\");
+        if (chosen && chosen.trim()) {
+          pathInput.value = chosen.trim();
+        }
       });
     }
 
@@ -81,20 +127,19 @@ class AppController {
       formAddDrive.addEventListener('submit', async (e) => {
         e.preventDefault();
         const drivePath = document.getElementById('input-drive-path').value.trim();
-        const driveName = document.getElementById('input-drive-name').value.trim() || "External Drive";
+        const driveName = document.getElementById('input-drive-name').value.trim() || "External Storage";
 
         if (!drivePath) return;
 
-        this.logViewer.append('CORE', `Executing Windows NTFS ACL grant on '${drivePath}'...`);
+        this.logViewer.append('CORE', `Granting NTFS universal ACLs on '${drivePath}'...`);
         this.logViewer.append('CORE', `icacls "${drivePath}" /grant *S-1-1-0:(OI)(CI)F /T /C /Q`);
 
         try {
           await this.api.mountDrive(drivePath, driveName);
-          this.logViewer.append('CORE', `Drive '${driveName}' (${drivePath}) mounted with Full Access!`);
-          alert(`Drive successfully added with Full Access! Nextcloud will show it as an external storage drive.`);
+          this.logViewer.append('CORE', `Drive '${driveName}' (${drivePath}) mounted successfully.`);
           document.getElementById('input-drive-path').value = '';
           document.getElementById('input-drive-name').value = '';
-          this.refresh();
+          await this.refresh();
         } catch (err) {
           this.logViewer.append('CORE', `Error mounting drive: ${err.message}`);
           alert(`Failed to add drive: ${err.message}`);
@@ -113,8 +158,8 @@ class AppController {
         this.logViewer.append('TUNNEL', 'Validating and applying Cloudflare Tunnel token...');
         await this.api.setTunnelToken(token);
         this.logViewer.append('TUNNEL', 'Tunnel connected! Public HTTPS URL active.');
-        alert('Cloudflare Tunnel token saved! Tunnel is now connected.');
-        this.refresh();
+        document.getElementById('input-tunnel-token').value = '';
+        await this.refresh();
       });
     }
 
@@ -127,7 +172,7 @@ class AppController {
           this.logViewer.append('CORE', `Updating Nextcloud data root to: ${newPath.trim()}`);
           await this.api.setDataRoot(newPath.trim());
           this.logViewer.append('CORE', `Applied Windows ACL permissions to data root.`);
-          this.refresh();
+          await this.refresh();
         }
       });
     }
@@ -142,8 +187,7 @@ class AppController {
           this.logViewer.append('CORE', `Configuring HTTP server port to ${p}...`);
           await this.api.setPort(p);
           this.logViewer.append('CORE', `Server port set to ${p}.`);
-          alert(`Server port updated to ${p}! Restart server to apply.`);
-          this.refresh();
+          await this.refresh();
         }
       });
     }
@@ -169,15 +213,14 @@ class AppController {
     if (formUpdateAdmin) {
       formUpdateAdmin.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const user = document.getElementById('input-admin-username').value.trim();
+        const user = document.getElementById('lbl-admin-username')?.textContent || 'admin';
         const pass = document.getElementById('input-admin-password').value.trim();
-        if (user) {
+        if (pass) {
           this.logViewer.append('CORE', `Updating administrator credentials for '${user}'...`);
-          await this.api.updateAdminUser(user, pass || undefined);
-          this.logViewer.append('CORE', `Administrator credentials updated in database.`);
-          alert('Administrator account credentials updated successfully!');
+          await this.api.updateAdminUser(user, pass);
+          this.logViewer.append('CORE', `Administrator credentials updated successfully.`);
           document.getElementById('input-admin-password').value = '';
-          this.refresh();
+          await this.refresh();
         }
       });
     }
@@ -190,7 +233,7 @@ class AppController {
 
     if (!splash || !targetBrand) return;
 
-    // After 900ms of initial loading, smoothly transition the pure cloud logo into the sidebar
+    // Smoothly transition logo into the sidebar position after initial load
     setTimeout(() => {
       const targetRect = targetBrand.getBoundingClientRect();
       const sourceRect = splashLogoContainer.getBoundingClientRect();
@@ -199,29 +242,93 @@ class AppController {
       const deltaY = targetRect.top + (targetRect.height / 2) - (sourceRect.top + (sourceRect.height / 2));
       const scale = targetRect.width / sourceRect.width;
 
-      // Animate pure cloud SVG scaling and gliding to the top-left sidebar brand position
       splashLogoContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale})`;
-
-      // Fade out background and text smoothly
       splash.classList.add('splash-leaving');
 
-      // Clean up splash screen from layout after transition finishes
       setTimeout(() => {
         splash.style.display = 'none';
       }, 850);
-    }, 900);
+    }, 850);
   }
 
   async refresh() {
     this.state = await this.api.getStatus();
     const adminData = await this.api.getAdminUser();
 
+    const isRunning = this.state?.running ?? true;
+    const port = this.state?.server_port || 8080;
+    const localUrl = `http://localhost:${port}`;
+
+    // Update Header Status Indicator & State-aware Toggle Button
+    const headerStatusDot = document.getElementById('header-status-dot');
+    const headerStatusText = document.getElementById('header-status-text');
+    const btnToggle = document.getElementById('btn-toggle-server');
+    const iconToggle = document.getElementById('icon-toggle-server');
+    const lblToggle = document.getElementById('lbl-toggle-server');
+    const btnOpenNextcloud = document.getElementById('btn-open-nextcloud');
+
+    if (isRunning) {
+      if (headerStatusDot) {
+        headerStatusDot.className = 'status-dot dot-running';
+      }
+      if (headerStatusText) {
+        headerStatusText.textContent = 'Running';
+      }
+      if (btnToggle) {
+        btnToggle.className = 'btn btn-destructive-outline';
+      }
+      if (lblToggle) {
+        lblToggle.textContent = 'Stop Server';
+      }
+      if (iconToggle) {
+        iconToggle.innerHTML = '<rect x="6" y="6" width="12" height="12"></rect>';
+      }
+      if (btnOpenNextcloud) {
+        btnOpenNextcloud.href = localUrl;
+        btnOpenNextcloud.className = 'btn btn-primary';
+        btnOpenNextcloud.removeAttribute('disabled');
+      }
+    } else {
+      if (headerStatusDot) {
+        headerStatusDot.className = 'status-dot dot-stopped';
+      }
+      if (headerStatusText) {
+        headerStatusText.textContent = 'Stopped';
+      }
+      if (btnToggle) {
+        btnToggle.className = 'btn btn-success';
+      }
+      if (lblToggle) {
+        lblToggle.textContent = 'Start Server';
+      }
+      if (iconToggle) {
+        iconToggle.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+      }
+      if (btnOpenNextcloud) {
+        btnOpenNextcloud.href = '#';
+        btnOpenNextcloud.className = 'btn btn-primary disabled';
+        btnOpenNextcloud.setAttribute('disabled', 'true');
+      }
+    }
+
+    // Update Dashboard Endpoints
+    const linkCore = document.getElementById('link-core-endpoint');
+    if (linkCore) {
+      linkCore.href = localUrl;
+      linkCore.textContent = localUrl;
+      const copyBtn = linkCore.parentElement?.querySelector('.btn-copy-icon');
+      if (copyBtn) copyBtn.setAttribute('data-copy', localUrl);
+    }
+
+    const lblCaddyPort = document.getElementById('lbl-caddy-port');
+    if (lblCaddyPort) {
+      lblCaddyPort.textContent = `${port} (Proxy to FastCGI)`;
+    }
+
     // Update Admin label
     const adminUserElem = document.getElementById('lbl-admin-username');
     if (adminUserElem && adminData.username) {
       adminUserElem.textContent = adminData.username;
-      const inputAdminUser = document.getElementById('input-admin-username');
-      if (inputAdminUser) inputAdminUser.value = adminData.username;
     }
 
     // Update Port Field
@@ -230,10 +337,20 @@ class AppController {
       inputPort.value = this.state.server_port;
     }
 
-    // Update Active Tunnel display
-    const lblTunnelActive = document.getElementById('lbl-tunnel-active-url');
-    if (lblTunnelActive && this.state.tunnel_url) {
-      lblTunnelActive.textContent = `Active: ${this.state.tunnel_url}`;
+    // Update Tunnel displays
+    const tunnelUrl = this.state.tunnel_url || 'https://cloud.yourdomain.com';
+    const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
+    if (tunnelUrlElem) {
+      tunnelUrlElem.href = tunnelUrl;
+      tunnelUrlElem.textContent = tunnelUrl;
+      const copyTunnelBtn = document.getElementById('btn-copy-tunnel');
+      if (copyTunnelBtn) copyTunnelBtn.setAttribute('data-copy', tunnelUrl);
+    }
+
+    const cfgTunnelUrl = document.getElementById('lbl-tunnel-active-url');
+    if (cfgTunnelUrl) {
+      cfgTunnelUrl.href = tunnelUrl;
+      cfgTunnelUrl.textContent = tunnelUrl;
     }
 
     // Render storage gauge
@@ -241,12 +358,14 @@ class AppController {
 
     // Update Data Directory label
     const dataDirElem = document.getElementById('lbl-data-dir');
-    if (dataDirElem) dataDirElem.textContent = this.state.data_dir;
+    if (dataDirElem && this.state.data_dir) {
+      dataDirElem.textContent = this.state.data_dir;
+    }
 
     // Render Trusted Domains list
     this.refreshDomains();
 
-    // Render Drive Cards
+    // Render Drive Cards with single subtle metadata label and unmount on hover
     const driveContainer = document.getElementById('drive-list-container');
     if (driveContainer && this.state.drives) {
       driveContainer.innerHTML = this.state.drives.map(d => {
@@ -255,11 +374,11 @@ class AppController {
         const free = d.free_gb || (total - used);
         const pct = Math.min(100, Math.round((used / total) * 100));
         return `
-        <div class="drive-card" style="flex-direction:column; align-items:stretch; gap:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="drive-card">
+          <div class="drive-card-header">
             <div class="drive-info">
               <div class="drive-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                 </svg>
               </div>
@@ -269,28 +388,38 @@ class AppController {
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
-              <span class="badge-permission">✓ ${d.permission}</span>
-              <span class="status-pill online">${d.status}</span>
+              <span class="drive-meta-label">NTFS • Mounted</span>
+              <button type="button" class="btn-unmount-drive" data-path="${d.path}" title="Unmount external drive">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                Unmount
+              </button>
             </div>
           </div>
-          <div style="margin-top:4px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-secondary); margin-bottom:4px;">
-              <span><strong>${free} GB free</strong> of ${total} GB</span>
+          <div style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px; font-family:var(--font-mono);">
+              <span>${free} GB free of ${total} GB</span>
               <span>${pct}% used</span>
             </div>
-            <div class="storage-bar-track" style="height:6px;">
+            <div class="storage-bar-track" style="margin:0;">
               <div class="storage-bar-fill" style="width: ${pct}%;"></div>
             </div>
           </div>
         </div>
       `;}).join('');
-    }
 
-    // Update Tunnel URL
-    const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
-    if (tunnelUrlElem && this.state.tunnel_url) {
-      tunnelUrlElem.href = this.state.tunnel_url;
-      tunnelUrlElem.textContent = this.state.tunnel_url;
+      // Bind unmount click handlers
+      driveContainer.querySelectorAll('.btn-unmount-drive').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const drivePath = btn.getAttribute('data-path');
+          if (confirm(`Unmount external drive '${drivePath}'?`)) {
+            this.logViewer.append('CORE', `Unmounting external drive: ${drivePath}...`);
+            await this.api.unmountDrive(drivePath);
+            this.logViewer.append('CORE', `Drive '${drivePath}' unmounted.`);
+            await this.refresh();
+          }
+        });
+      });
     }
   }
 
@@ -298,14 +427,19 @@ class AppController {
     const listElem = document.getElementById('trusted-domains-list');
     if (!listElem) return;
     const domains = await this.api.getTrustedDomains();
-    // Exclude localhost, 127.0.0.1 and ::1 from UI clutter
     const customDomains = (domains || []).filter(d => d !== 'localhost' && d !== '127.0.0.1' && d !== '::1');
+
+    if (customDomains.length === 0) {
+      listElem.innerHTML = `<span style="font-size:0.76rem; color:var(--text-muted); font-family:var(--font-mono);">No custom domains configured.</span>`;
+      return;
+    }
+
     listElem.innerHTML = customDomains.map(d => `
-      <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3); padding:4px 10px; border-radius:6px; font-size:0.85rem; color:var(--accent-amber);">
-        ${d}
-        <button type="button" data-domain="${d}" class="btn-remove-domain" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0 2px;">×</button>
+      <span class="mono-badge" style="display:inline-flex; align-items:center; gap:6px; padding:3px 8px; font-size:0.78rem;">
+        <span>${d}</span>
+        <button type="button" data-domain="${d}" class="btn-remove-domain" title="Remove domain" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.95rem; line-height:1; padding:0 2px;">×</button>
       </span>
-    `).join('') || '<span style="font-size:0.82rem; color:var(--text-muted);">No custom domains added yet.</span>';
+    `).join('');
 
     listElem.querySelectorAll('.btn-remove-domain').forEach(btn => {
       btn.addEventListener('click', async () => {

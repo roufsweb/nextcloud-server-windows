@@ -13,11 +13,11 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" style="width:32px; height:32px;">
+          <svg viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="brandCloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#fbbf24" />
-                <stop offset="100%" stop-color="#f59e0b" />
+                <stop offset="0%" stop-color="#38BDF8" />
+                <stop offset="100%" stop-color="#0EA5E9" />
               </linearGradient>
             </defs>
             <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="url(#brandCloudGrad)"/>
@@ -25,7 +25,7 @@
         </div>
         <div>
           <div class="brand-title">Nextcloud AIO</div>
-          <div class="brand-subtitle" style="font-size:0.75rem; color:var(--accent-amber); font-weight:600; letter-spacing:0.4px;">by roufsweb</div>
+          <div class="brand-subtitle">v1.0.0 • by roufsweb</div>
         </div>
       </div>
 
@@ -58,42 +58,61 @@
 
       <div class="sidebar-footer">
         <span>v1.0.0 • by roufsweb</span>
-        <span class="status-pill online"><span class="status-dot"></span> Active</span>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Bar -->
+      <!-- Top App Bar -->
       <header class="top-bar">
-        <h1 class="view-title" id="current-view-title">Dashboard</h1>
+        <div class="header-left">
+          <h1 class="view-title" id="current-view-title">Dashboard</h1>
+          <span id="header-status-indicator" class="header-status">
+            <span class="status-dot dot-running" id="header-status-dot"></span>
+            <span id="header-status-text">Running</span>
+          </span>
+        </div>
         <div class="top-actions">
-          <button class="btn btn-success" id="btn-start-services">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            Start Server
+          <!-- State-aware Server Toggle Control -->
+          <button class="btn btn-destructive-outline" id="btn-toggle-server">
+            <svg id="icon-toggle-server" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12"></rect>
+            </svg>
+            <span id="lbl-toggle-server">Stop Server</span>
           </button>
-          <button class="btn btn-secondary" id="btn-stop-services">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>
-            Stop
-          </button>
-          <a href="http://localhost:8080" target="_blank" class="btn btn-primary">
-            Open Nextcloud
+          
+          <!-- Hidden fallback buttons to retain full backwards compatibility with any existing IPC triggers -->
+          <button id="btn-start-services" style="display:none;"></button>
+          <button id="btn-stop-services" style="display:none;"></button>
+
+          <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="btn-open-nextcloud">
+            Open Nextcloud ↗
           </a>
         </div>
       </header>
 
       <!-- View: Dashboard -->
       <section class="tab-content active" id="view-dashboard">
-        <div class="grid-cards">
+        <!-- Balanced 2x2 Service Status Grid -->
+        <div class="grid-2x2">
           <!-- Nextcloud Core -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">Nextcloud Core</div>
-              <span class="status-pill online"><span class="status-dot"></span> Running</span>
+              <span class="service-status">
+                <span class="status-dot dot-running"></span>
+                <span>Running</span>
+              </span>
             </div>
-            <div style="font-size:0.85rem; color:var(--text-secondary)">
+            <div class="card-body-text">
               <p>Version: <strong>30.0.2</strong></p>
-              <p>Address: <a href="http://localhost:8080" target="_blank" style="color:var(--accent-cyan)">http://localhost:8080</a></p>
+              <div class="endpoint-row">
+                <span>Address:</span>
+                <a href="http://localhost:8080" target="_blank" class="mono-link" id="link-core-endpoint">http://localhost:8080</a>
+                <button type="button" class="btn-copy-icon" data-copy="http://localhost:8080" title="Copy URL">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -101,11 +120,14 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Caddy Web Server</div>
-              <span class="status-pill online"><span class="status-dot"></span> Active</span>
+              <span class="service-status">
+                <span class="status-dot dot-running"></span>
+                <span>Active</span>
+              </span>
             </div>
-            <div style="font-size:0.85rem; color:var(--text-secondary)">
+            <div class="card-body-text">
               <p>Protocol: <strong>HTTP/2 & HTTP/3 (QUIC)</strong></p>
-              <p>Port: <strong>8080</strong> (Proxy to FastCGI)</p>
+              <p>Port: <strong id="lbl-caddy-port">8080 (Proxy to FastCGI)</strong></p>
             </div>
           </div>
 
@@ -113,9 +135,12 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">PHP 8.3 NTS FastCGI</div>
-              <span class="status-pill online"><span class="status-dot"></span> 127.0.0.1:9000</span>
+              <span class="service-status">
+                <span class="status-dot dot-running"></span>
+                <span>127.0.0.1:9000</span>
+              </span>
             </div>
-            <div style="font-size:0.85rem; color:var(--text-secondary)">
+            <div class="card-body-text">
               <p>Engine: <strong>Zend Engine v4.3 + JIT</strong></p>
               <p>Memory Cache: <strong>APCu + Redis</strong></p>
             </div>
@@ -125,11 +150,20 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Cloudflare Tunnel</div>
-              <span class="status-pill online"><span class="status-dot"></span> Connected</span>
+              <span class="service-status">
+                <span class="status-dot dot-running" id="dot-dash-tunnel"></span>
+                <span id="lbl-dash-tunnel-status">Connected</span>
+              </span>
             </div>
-            <div style="font-size:0.85rem; color:var(--text-secondary)">
+            <div class="card-body-text">
               <p>Status: <strong>HTTPS Secure Tunnel</strong></p>
-              <p>External: <a href="#" id="lbl-tunnel-url" target="_blank" style="color:var(--accent-cyan)">https://cloud.yourdomain.com</a></p>
+              <div class="endpoint-row">
+                <span>External:</span>
+                <a href="https://cloud.yourdomain.com" id="lbl-tunnel-url" target="_blank" class="mono-link">https://cloud.yourdomain.com</a>
+                <button type="button" class="btn-copy-icon" id="btn-copy-tunnel" data-copy="https://cloud.yourdomain.com" title="Copy Public URL">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -141,20 +175,19 @@
       <!-- View: Storage & External Drives -->
       <section class="tab-content" id="view-storage">
         <!-- Nextcloud Data Root Directory Card -->
-        <div class="card" style="margin-bottom: 24px;">
+        <div class="card" style="margin-bottom: 16px;">
           <div class="card-header">
             <div class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               Nextcloud Data Root Directory
             </div>
             <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Select Folder</button>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div>
-              <p style="font-size:0.85rem; color:var(--text-secondary);">All internal cloud user files and database stores reside here:</p>
-              <code id="lbl-data-dir" style="font-size:0.95rem; color:var(--accent-cyan); display:block; margin-top:4px;">C:\NextcloudAIO\data</code>
+              <p style="font-size:0.82rem; color:var(--text-secondary);">All internal cloud user files and database stores reside here:</p>
+              <code id="lbl-data-dir" class="mono-link" style="font-size:0.85rem; display:block; margin-top:4px;">C:\NextcloudAIO\data</code>
             </div>
-            <span class="badge-permission">✓ Full NTFS Permissions Granted</span>
           </div>
         </div>
 
@@ -162,28 +195,30 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-              Add Drive on Demand (External Storage with Full Permissions)
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              Add Drive on Demand (External Storage)
             </div>
           </div>
           <form id="form-add-drive">
-            <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:12px; align-items:flex-end;">
+            <div style="display:grid; grid-template-columns: 2fr 1.5fr auto; gap:10px; align-items:flex-end;">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="input-drive-path">Drive Letter / Directory Path</label>
-                <input type="text" class="form-input" id="input-drive-path" placeholder="e.g. D:\ or E:\MyStorage" required>
-                <div class="form-help">Automatically executes Windows NTFS ACL grant (*S-1-1-0) for full read/write/delete.</div>
+                <div class="input-with-button">
+                  <input type="text" class="form-input form-input-mono" id="input-drive-path" placeholder="e.g. D:\ or E:\MyStorage" required>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-browse-drive">Browse...</button>
+                </div>
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="input-drive-name">Display Name in Nextcloud</label>
                 <input type="text" class="form-input" id="input-drive-name" placeholder="e.g. Media Drive">
               </div>
-              <button type="submit" class="btn btn-primary" style="height:42px;">
-                Grant Full Access & Mount
+              <button type="submit" class="btn btn-primary" style="height:35px;">
+                Mount Drive
               </button>
             </div>
           </form>
 
-          <h3 style="font-size:0.95rem; margin-top:28px; margin-bottom:12px; font-weight:600;">Active Connected Drives</h3>
+          <h3 style="font-size:0.85rem; margin-top:20px; margin-bottom:10px; font-weight:600; color:var(--text-primary);">Active Connected Drives</h3>
           <div class="drive-list" id="drive-list-container">
             <!-- Driven dynamically populated by app.js -->
           </div>
@@ -193,29 +228,27 @@
       <!-- View: Config (Unified Settings & Networking) -->
       <section class="tab-content" id="view-config">
         <!-- Cloudflare Tunnel Configuration -->
-        <div class="card" style="margin-bottom: 20px;">
+        <div class="card" style="margin-bottom: 16px;">
           <div class="card-header">
             <div class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-              Set up your Cloudflare Token
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+              Cloudflare Tunnel
             </div>
-            <span class="status-pill online" id="pill-tunnel-status"><span class="status-dot"></span> Ready</span>
+            <span class="service-status">
+              <span class="status-dot dot-running" id="dot-cfg-tunnel"></span>
+              <a href="https://cloud.yourdomain.com" target="_blank" class="mono-link" id="lbl-tunnel-active-url">https://cloud.yourdomain.com</a>
+            </span>
           </div>
           <form id="form-save-tunnel">
-            <div class="form-group">
-              <label class="form-label" for="input-tunnel-token">Cloudflare Tunnel Token</label>
-              <textarea class="form-input" id="input-tunnel-token" rows="2" placeholder="Paste your Cloudflare Tunnel token here (eyJh...)"></textarea>
-              <div class="form-help">Securely connects Nextcloud to your domain over HTTPS worldwide with zero router port forwarding.</div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <button type="submit" class="btn btn-primary">Connect Cloudflare Tunnel</button>
-              <span id="lbl-tunnel-active-url" style="font-size:0.85rem; color:var(--accent-amber); font-weight:600;"></span>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <input type="text" class="form-input form-input-mono" id="input-tunnel-token" placeholder="Paste Cloudflare Tunnel token (eyJh...)" style="flex:1;">
+              <button type="submit" class="btn btn-primary">Connect Tunnel</button>
             </div>
           </form>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
-          <!-- Network & Port Settings -->
+        <div class="grid-2col">
+          <!-- Server Web Port Settings -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">
@@ -224,83 +257,67 @@
               </div>
             </div>
             <form id="form-change-port">
-              <div class="form-group">
+              <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="input-server-port">HTTP Web Port</label>
-                <div style="display:flex; gap:10px;">
-                  <input type="number" class="form-input" id="input-server-port" value="8080" min="80" max="65535" required>
+                <div style="display:flex; gap:8px;">
+                  <input type="number" class="form-input form-input-mono" id="input-server-port" value="8080" min="80" max="65535" required style="width:110px;">
                   <button type="submit" class="btn btn-secondary">Apply</button>
                 </div>
-                <div class="form-help">Default: 8080 (or 80 with Administrator permissions).</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">Default: 8080 (or 80 with Administrator permissions).</div>
               </div>
             </form>
           </div>
 
-          <!-- Nextcloud Data Root Directory -->
+          <!-- Administrator Password -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                Nextcloud Data Directory
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Administrator Password
               </div>
+              <span class="mono-badge">User: <strong id="lbl-admin-username" style="color:var(--text-primary);">admin</strong></span>
             </div>
-            <div>
-              <code id="lbl-data-dir" style="font-size:0.88rem; color:var(--accent-amber); display:block; margin-bottom:8px;">C:\NextcloudAIO\data</code>
-              <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Select Folder</button>
-              <div class="form-help" style="margin-top:6px;">Windows universal NTFS ACLs (*S-1-1-0) are applied automatically.</div>
-            </div>
+            <form id="form-update-admin">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="input-admin-password">New Password</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="password" class="form-input" id="input-admin-password" placeholder="Enter new password (min. 8 chars)" required style="flex:1;">
+                  <button type="submit" class="btn btn-secondary">Update</button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
 
         <!-- Trusted Domains Management -->
-        <div class="card" style="margin-bottom: 20px;">
+        <div class="card">
           <div class="card-header">
             <div class="card-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
               Trusted Domains
             </div>
-            <span style="font-size:0.75rem; color:var(--text-muted);">localhost & 127.0.0.1 active by default</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">localhost & 127.0.0.1 active by default</span>
           </div>
           <form id="form-add-domain" style="margin-bottom: 12px;">
-            <div style="display:flex; gap:10px;">
-              <input type="text" class="form-input" id="input-new-domain" placeholder="e.g. cloud.mydomain.com or my-pc.local" required>
+            <div style="display:flex; gap:8px;">
+              <input type="text" class="form-input form-input-mono" id="input-new-domain" placeholder="e.g. cloud.mydomain.com or my-pc.local" required style="flex:1;">
               <button type="submit" class="btn btn-primary">Add Domain</button>
             </div>
-            <div class="form-help">Only add custom or external domains. Localhost addresses are handled silently without UI clutter.</div>
           </form>
           <div id="trusted-domains-list" style="display:flex; flex-wrap:wrap; gap:8px;">
             <!-- Populated dynamically by app.js -->
           </div>
         </div>
-
-        <!-- Administrator Password -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              Administrator Password
-            </div>
-            <span class="badge-permission">User: <strong id="lbl-admin-username">admin</strong></span>
-          </div>
-          <form id="form-update-admin">
-            <div style="display:flex; gap:10px; align-items:flex-end;">
-              <div class="form-group" style="margin-bottom:0; flex:1;">
-                <label class="form-label" for="input-admin-password">New Password</label>
-                <input type="password" class="form-input" id="input-admin-password" placeholder="Enter new password (min. 8 characters)" required>
-              </div>
-              <button type="submit" class="btn btn-secondary">Update Password</button>
-            </div>
-          </form>
-        </div>
       </section>
 
       <!-- View: In-App Logs -->
-      <section class="tab-content" id="view-logs" style="height: calc(100vh - var(--header-height)); padding-bottom: 24px;">
+      <section class="tab-content" id="view-logs" style="height: calc(100vh - var(--header-height)); padding: 16px 24px;">
         <div id="log-viewer-root" style="height: 100%;"></div>
       </section>
     </main>
   </div>
 
-  <!-- Fluid Warm Splash / Loading Screen -->
+  <!-- Fluid Splash / Loading Screen -->
   <div id="splash-screen" class="splash-screen">
     <div class="splash-center">
       <div class="splash-logo-container" id="splash-logo-container">
@@ -308,8 +325,8 @@
         <svg class="splash-cloud-svg" viewBox="0 0 24 24" fill="none">
           <defs>
             <linearGradient id="splashCloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#fbbf24" />
-              <stop offset="100%" stop-color="#f59e0b" />
+              <stop offset="0%" stop-color="#38BDF8" />
+              <stop offset="100%" stop-color="#0EA5E9" />
             </linearGradient>
           </defs>
           <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="url(#splashCloudGrad)"/>

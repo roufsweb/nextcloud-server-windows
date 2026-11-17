@@ -57,6 +57,19 @@ export class ServerApi {
     return res.json();
   }
 
+  async unmountDrive(drivePath) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/drives/unmount`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: drivePath })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "unmounted" };
+    }
+  }
+
   async setDataRoot(path) {
     const res = await fetch(`${this.baseUrl}/api/config/dataroot`, {
       method: 'POST',
