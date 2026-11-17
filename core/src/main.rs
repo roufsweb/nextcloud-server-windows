@@ -1,5 +1,6 @@
 mod config;
 mod drive;
+mod gui;
 mod server;
 mod supervisor;
 mod tunnel;
@@ -29,6 +30,10 @@ enum Commands {
         /// Dashboard UI port
         #[arg(short, long, default_value_t = 8081)]
         dashboard_port: u16,
+
+        /// Automatically open the standalone in-app desktop GUI window
+        #[arg(long, default_value_t = false)]
+        gui: bool,
     },
 
     /// Launch the standalone Modern Desktop Dashboard GUI
@@ -68,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
     let shared_config = Arc::new(Mutex::new(config.clone()));
 
     match cli.command {
-        Commands::Start { dashboard_port } => {
+        Commands::Start { dashboard_port, gui } => {
             // Spawn internal dashboard HTTP server in background
             let srv_cfg = Arc::clone(&shared_config);
             tokio::spawn(async move {
@@ -77,17 +82,32 @@ async fn main() -> anyhow::Result<()> {
                 }
             });
 
+            if gui {
+                // Wait briefly for HTTP server to bind before launching in-app GUI
+                tokio::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    let _ = gui::spawn_in_app_gui(dashboard_port);
+                });
+            }
+
             // Start backend process supervisor
             let sup = supervisor::ServerSupervisor::new(config);
             sup.start()?;
         }
         Commands::Gui { port } => {
             println!("{}", "=========================================================".cyan());
-            println!("{}", "   Nextcloud AIO Standalone Desktop Dashboard (Web/GUI)  ".bold().green());
+            println!("{}", "   Nextcloud AIO Standalone Desktop Dashboard (In-App GUI) ".bold().green());
             println!("{}", "=========================================================".cyan());
 
             let srv_cfg = Arc::clone(&shared_config);
-            server::run_dashboard_server(port, srv_cfg, CONFIG_PATH).await?;
+            tokio::spawn(async move {
+                let _ = server::run_dashboard_server(port, srv_cfg, CONFIG_PATH).await;
+            });
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            if let Ok(mut p) = gui::spawn_in_app_gui(port) {
+                let _ = p.wait();
+            }
         }
         Commands::Status => {
             println!("{}", "=== Nextcloud Server AIO Status ===".bold().cyan());

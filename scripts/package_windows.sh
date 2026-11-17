@@ -33,15 +33,15 @@ cp README.md "${DIST_DIR}/"
 cp LICENSE "${DIST_DIR}/"
 cp THIRD_PARTY_LICENSES.md "${DIST_DIR}/"
 
-# Copy compiled Rust executable
+# Copy compiled Rust executables
 if [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio.exe" ]; then
-    echo "-> Copying cross-compiled Windows binary..."
+    echo "-> Copying cross-compiled Windows supervisor binary..."
     cp "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio.exe" "${DIST_DIR}/nextcloud-aio.exe"
-elif [ -f "core/target/release/nextcloud-aio.exe" ]; then
-    cp "core/target/release/nextcloud-aio.exe" "${DIST_DIR}/nextcloud-aio.exe"
-elif [ -f "core/target/release/nextcloud-aio" ]; then
-    echo "-> Including native binary for local testing..."
-    cp "core/target/release/nextcloud-aio" "${DIST_DIR}/nextcloud-aio"
+fi
+
+if [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio-gui.exe" ]; then
+    echo "-> Copying cross-compiled Windows native GUI subsystem binary..."
+    cp "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio-gui.exe" "${DIST_DIR}/nextcloud-aio-gui.exe"
 fi
 
 # Copy runtime binaries if present
@@ -55,22 +55,36 @@ cat << 'EOF' > "${DIST_DIR}/start-server.bat"
 @echo off
 title Nextcloud Server for Windows (All-In-One)
 echo ==========================================================
-echo Starting Nextcloud All-In-One Server & Desktop Dashboard...
+echo Starting Nextcloud Server & Standalone Desktop GUI Window...
 echo ==========================================================
-if exist "nextcloud-aio.exe" (
-    start http://localhost:8081
-    nextcloud-aio.exe start
+if exist "nextcloud-aio-gui.exe" (
+    start "" "nextcloud-aio-gui.exe"
+) else if exist "nextcloud-aio.exe" (
+    start "" "nextcloud-aio.exe" start --gui
 ) else (
-    echo [ERROR] nextcloud-aio.exe not found in current directory.
+    echo [ERROR] Nextcloud AIO binary not found in current directory.
     pause
 )
 EOF
 
 cat << 'EOF' > "${DIST_DIR}/open-dashboard.bat"
 @echo off
-echo Opening Nextcloud AIO Desktop Dashboard...
-start http://localhost:8081
+echo Opening Nextcloud AIO Standalone Desktop GUI Window...
+if exist "nextcloud-aio.exe" (
+    nextcloud-aio.exe gui
+) else if exist "nextcloud-aio-gui.exe" (
+    start "" "nextcloud-aio-gui.exe"
+)
 EOF
 
-echo "✓ Distribution folder prepared at: ${DIST_DIR}"
-echo "To package final zip archive, run: (cd dist && zip -r nextcloud-windows-aio-v1.0.0-portable-x64.zip nextcloud-windows-aio)"
+cat << 'EOF' > "${DIST_DIR}/Nextcloud-AIO.vbs"
+Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "nextcloud-aio-gui.exe", 0, False
+EOF
+
+echo "-> Compressing portable distribution package..."
+(cd dist && rm -f "nextcloud-windows-aio-v1.0.0-portable-x64.zip" && zip -9 -r -q "nextcloud-windows-aio-v1.0.0-portable-x64.zip" nextcloud-windows-aio)
+(cd dist && sha256sum "nextcloud-windows-aio-v1.0.0-portable-x64.zip" > SHA256SUMS.txt)
+
+echo "✓ Distribution archive packaged at: ${RELEASE_ZIP}"
+cat dist/SHA256SUMS.txt

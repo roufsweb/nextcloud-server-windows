@@ -53,6 +53,7 @@ pub fn grant_drive_permissions<P: AsRef<Path>>(drive_path: P) -> Result<()> {
 }
 
 /// Verifies whether the process can read and write to the drive directory
+#[allow(dead_code)]
 pub fn verify_drive_read_write<P: AsRef<Path>>(drive_path: P) -> Result<bool> {
     let test_file = drive_path.as_ref().join(".nc_write_test.tmp");
     if let Err(e) = std::fs::write(&test_file, b"nextcloud_rw_verify") {
