@@ -64,6 +64,17 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+
+    /// Run the dashboard REST server only (headless / CI / test mode)
+    Server {
+        /// Dashboard UI port
+        #[arg(short, long, default_value_t = 8081)]
+        port: u16,
+
+        /// Custom config path
+        #[arg(short, long, default_value = "config/app_config.json")]
+        config: String,
+    },
 }
 
 #[tokio::main]
@@ -147,6 +158,13 @@ async fn main() -> anyhow::Result<()> {
             cmd.args(&args);
             let status = cmd.status()?;
             std::process::exit(status.code().unwrap_or(1));
+        }
+        Commands::Server { port, config: cfg_file } => {
+            let static_cfg: &'static str = Box::leak(cfg_file.into_boxed_str());
+            let loaded_config = AppConfig::load_or_default(static_cfg);
+            let shared_config = Arc::new(Mutex::new(loaded_config));
+            println!("{} Starting Nextcloud AIO Dashboard server on port {}...", "==>".blue(), port);
+            server::run_dashboard_server(port, shared_config, static_cfg).await?;
         }
     }
 
