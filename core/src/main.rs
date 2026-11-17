@@ -1,4 +1,5 @@
 mod config;
+mod db;
 mod drive;
 mod gui;
 mod server;

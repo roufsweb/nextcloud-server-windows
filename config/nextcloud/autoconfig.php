@@ -11,7 +11,7 @@ $AUTOCONFIG = [
   'dbpass'        => 'nextcloud_secure_pass',
   'dbhost'        => '127.0.0.1:3306',
   'dbtableprefix' => 'oc_',
-  'adminlogin'    => 'admin',
-  'adminpass'     => 'NextcloudAdmin2026!',
+  'adminlogin'    => 'superadmin',
+  'adminpass'     => 'SuperNextcloudPass2026!',
   'directory'     => 'C:\\NextcloudAIO\\data',
 ];

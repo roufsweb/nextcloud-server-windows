@@ -70,17 +70,22 @@ $CONFIG = [
   ],
 
   // ----------------------------------------------------------------------------
-  // 5. Database Connection
+  // 5. Database Connection (libSQL / SQLite with WAL Mode or MariaDB)
   // ----------------------------------------------------------------------------
-  // Production default: MariaDB / MySQL (or 'sqlite3' for ultra-lite mode)
-  'dbtype' => 'mysql',
+  // Default: 'sqlite' with WAL mode + Redis transactional locking for ultra-low RAM footprint (<15MB)
+  // Enterprise option: 'mysql' (MariaDB / MySQL 8.0+)
+  'dbtype' => 'sqlite',
   'dbname' => 'nextcloud',
-  'dbhost' => '127.0.0.1:3306',
+  'dbhost' => '127.0.0.1',
   'dbport' => '',
   'dbtableprefix' => 'oc_',
-  'dbuser' => 'nextcloud',
-  'dbpassword' => 'nextcloud_secure_password',
-  'mysql.utf8mb4' => true,
+  'sqlite.journal_mode' => 'WAL',
+  'sqlite.synchronous' => 'NORMAL',
+  // Optional MySQL/MariaDB parameters (uncomment when using external MariaDB)
+  // 'dbtype' => 'mysql',
+  // 'dbuser' => 'nextcloud',
+  // 'dbpassword' => 'nextcloud_secure_password',
+  // 'mysql.utf8mb4' => true,
 
   // ----------------------------------------------------------------------------
   // 6. Media & Image Previews (Memories, Photos, Video Streaming)

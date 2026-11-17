@@ -128,6 +128,14 @@ switch ($cmd) {
             'parse_mode' => 'Markdown',
             'disable_web_page_preview' => true,
         ]);
+        // Fallback to plain text if markdown formatting failed
+        if (!$res) {
+            $res = telegram_api('sendMessage', [
+                'chat_id'    => $chatId,
+                'text'       => $text,
+                'disable_web_page_preview' => true,
+            ]);
+        }
         if ($res && isset($res['message_id'])) {
             echo json_encode(['status' => 'sent', 'message_id' => $res['message_id']]) . "\n";
         }
@@ -214,6 +222,12 @@ switch ($cmd) {
                 'text'       => $formatted,
                 'parse_mode' => 'Markdown',
             ]);
+            if (!$res) {
+                $res = telegram_api('sendMessage', [
+                    'chat_id'    => $chatId,
+                    'text'       => $formatted,
+                ]);
+            }
         }
 
         if ($res && isset($res['message_id'])) {

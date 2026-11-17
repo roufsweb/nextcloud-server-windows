@@ -260,6 +260,26 @@ pub async fn run_dashboard_server(
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
                 }
+            } else if uri == "/api/database/status" {
+                let cfg = config_clone.lock().await;
+                let db_path = cfg.data_dir.join("nextcloud.db");
+                let status = crate::db::get_status(&db_path, "libSQL / SQLite (WAL)");
+                ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&status).unwrap_or_default())
+            } else if method == "POST" && uri == "/api/database/optimize" {
+                let cfg = config_clone.lock().await;
+                let db_path = cfg.data_dir.join("nextcloud.db");
+                match crate::db::optimize(&db_path) {
+                    Ok(res) => ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&res).unwrap_or_default()),
+                    Err(e) => ("HTTP/1.1 500 Internal Server Error", "application/json", format!("{{\"error\":\"{}\"}}", e)),
+                }
+            } else if method == "POST" && uri == "/api/database/backup" {
+                let cfg = config_clone.lock().await;
+                let db_path = cfg.data_dir.join("nextcloud.db");
+                let backup_dir = cfg.data_dir.join("backups");
+                match crate::db::backup(&db_path, &backup_dir) {
+                    Ok(res) => ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&res).unwrap_or_default()),
+                    Err(e) => ("HTTP/1.1 500 Internal Server Error", "application/json", format!("{{\"error\":\"{}\"}}", e)),
+                }
             } else {
                 // Static file serving from ui/
                 let clean_uri = if uri == "/" { "/index.html" } else { uri.split('?').next().unwrap_or(uri) };

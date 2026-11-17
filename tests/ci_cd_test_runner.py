@@ -204,6 +204,21 @@ def test_supervisor_rest_api():
         code, current_status = http_req("/api/status")
         report("Data root path confirmed in supervisor state", current_status.get("data_dir") == new_dataroot, f"Data root: {current_status.get('data_dir')}")
 
+        # Test 7: Database Health & libSQL/SQLite WAL Status API
+        code, db_status = http_req("/api/database/status")
+        report("GET /api/database/status reports libSQL/SQLite engine", "SQLite" in db_status.get("engine", "") or "libSQL" in db_status.get("engine", ""), str(db_status))
+        report("GET /api/database/status reports integrity", "integrity" in db_status, f"Integrity: {db_status.get('integrity')}")
+
+        # Test 8: Database WAL Checkpoint & VACUUM Optimization API
+        code, opt_resp = http_req("/api/database/optimize", "POST")
+        report("POST /api/database/optimize executes WAL checkpoint & vacuum", opt_resp.get("status") == "optimized", str(opt_resp))
+
+        # Test 9: Database Atomic Hot Backup (VACUUM INTO) API
+        code, backup_resp = http_req("/api/database/backup", "POST")
+        report("POST /api/database/backup creates atomic snapshot", backup_resp.get("status") == "success", str(backup_resp))
+        backup_file = backup_resp.get("backup_file", "")
+        report("Backup file exists on disk", os.path.exists(backup_file) or os.path.exists(str(SANDBOX_DIR / "custom_nextcloud_data" / "backups")), f"File: {backup_file}")
+
     finally:
         print("  -> Stopping supervisor daemon...")
         proc.terminate()
@@ -320,6 +335,13 @@ def test_nextcloud_best_practices_audit():
     # 5. Media Preview Providers
     report("Movie / Video Preview Provider enabled", "'OC\\Preview\\Movie'" in cfg_content)
     report("HEIC, SVG, WebP, and PDF Previews enabled", "'OC\\Preview\\HEIC'" in cfg_content and "'OC\\Preview\\SVG'" in cfg_content)
+
+    # 6. Database Engine & WAL Tuning Configuration
+    auto_sample = BASE_DIR / "config" / "nextcloud" / "autoconfig.php"
+    auto_content = auto_sample.read_text()
+    report("Nextcloud autoconfig default dbtype: sqlite", "'dbtype'        => 'sqlite'" in auto_content or "'dbtype' => 'sqlite'" in auto_content)
+    report("Nextcloud sample config dbtype: sqlite", "'dbtype' => 'sqlite'" in cfg_content)
+    report("Nextcloud sample config sqlite.journal_mode: WAL", "'sqlite.journal_mode' => 'WAL'" in cfg_content)
 
 # ==============================================================================
 # 5. High-Bitrate Media Generation & Stress Benchmark

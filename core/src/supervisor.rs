@@ -27,6 +27,14 @@ impl ServerSupervisor {
 
         let mut active_children: Vec<(&'static str, Child)> = Vec::new();
 
+        // 0. Ensure SQLite/libSQL WAL & concurrency PRAGMAs are active
+        let db_file = self.config.data_dir.join("nextcloud.db");
+        if let Err(e) = crate::db::apply_wal_optimizations(&db_file) {
+            eprintln!("Warning: failed to apply SQLite WAL optimizations: {}", e);
+        } else {
+            println!("{} libSQL / SQLite WAL optimizations active on {:?}", "✓".green(), db_file);
+        }
+
         // 1. Start PHP FastCGI
         println!("{} Starting PHP FastCGI on 127.0.0.1:{}...", "==>".blue(), self.config.fastcgi_port);
         let php_child = Command::new(&self.config.php_path)

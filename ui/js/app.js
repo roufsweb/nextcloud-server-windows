@@ -224,6 +224,51 @@ class AppController {
         }
       });
     }
+
+    // Database Optimization & Backup Listeners
+    const btnDbOptimize = document.getElementById('btn-db-optimize');
+    const dbActionStatus = document.getElementById('lbl-db-action-status');
+    if (btnDbOptimize) {
+      btnDbOptimize.addEventListener('click', async () => {
+        btnDbOptimize.disabled = true;
+        this.logViewer.append('CORE', 'Executing WAL checkpoint (TRUNCATE) and VACUUM...');
+        try {
+          const res = await this.api.optimizeDatabase();
+          this.logViewer.append('CORE', `Database optimized. Status: ${res.status}, New Size: ${(res.new_size_bytes / 1024).toFixed(1)} KB.`);
+          if (dbActionStatus) {
+            dbActionStatus.style.display = 'block';
+            dbActionStatus.textContent = `✓ Checkpoint & VACUUM completed. Current size: ${(res.new_size_bytes / (1024 * 1024)).toFixed(2)} MB.`;
+            setTimeout(() => { dbActionStatus.style.display = 'none'; }, 6000);
+          }
+          await this.refresh();
+        } catch (err) {
+          this.logViewer.append('CORE', `Optimization error: ${err.message}`);
+        } finally {
+          btnDbOptimize.disabled = false;
+        }
+      });
+    }
+
+    const btnDbBackup = document.getElementById('btn-db-backup');
+    if (btnDbBackup) {
+      btnDbBackup.addEventListener('click', async () => {
+        btnDbBackup.disabled = true;
+        this.logViewer.append('CORE', 'Executing atomic point-in-time database snapshot (VACUUM INTO)...');
+        try {
+          const res = await this.api.backupDatabase();
+          this.logViewer.append('CORE', `Hot backup created: ${res.backup_file} (${(res.size_bytes / 1024).toFixed(1)} KB).`);
+          if (dbActionStatus) {
+            dbActionStatus.style.display = 'block';
+            dbActionStatus.textContent = `✓ Snapshot saved: ${res.backup_file} (${(res.size_bytes / (1024 * 1024)).toFixed(2)} MB).`;
+            setTimeout(() => { dbActionStatus.style.display = 'none'; }, 6000);
+          }
+        } catch (err) {
+          this.logViewer.append('CORE', `Backup error: ${err.message}`);
+        } finally {
+          btnDbBackup.disabled = false;
+        }
+      });
+    }
   }
 
   initSplashScreen() {
@@ -364,6 +409,42 @@ class AppController {
 
     // Render Trusted Domains list
     this.refreshDomains();
+
+    // Render Database Status & Health
+    try {
+      const dbStatus = await this.api.getDatabaseStatus();
+      const lblDbEngine = document.getElementById('lbl-db-engine');
+      if (lblDbEngine && dbStatus.engine) lblDbEngine.textContent = dbStatus.engine;
+
+      const lblDbSize = document.getElementById('lbl-db-size');
+      if (lblDbSize) {
+        const mb = (dbStatus.file_size_bytes / (1024 * 1024)).toFixed(2);
+        lblDbSize.textContent = `${mb} MB`;
+      }
+
+      const lblDbWalSize = document.getElementById('lbl-db-wal-size');
+      if (lblDbWalSize) {
+        const walMb = (dbStatus.wal_size_bytes / (1024 * 1024)).toFixed(2);
+        lblDbWalSize.textContent = `${walMb} MB`;
+      }
+
+      const lblDbIntegrity = document.getElementById('lbl-db-integrity');
+      if (lblDbIntegrity && dbStatus.integrity) {
+        lblDbIntegrity.textContent = dbStatus.integrity;
+        lblDbIntegrity.style.color = dbStatus.integrity === 'ok' ? 'var(--accent-emerald)' : 'var(--accent-amber)';
+      }
+
+      const dotDbStatus = document.getElementById('dot-db-status');
+      if (dotDbStatus) {
+        dotDbStatus.className = dbStatus.integrity === 'ok' ? 'status-dot dot-running' : 'status-dot dot-warning';
+      }
+
+      const lblDbStatus = document.getElementById('lbl-db-status');
+      if (lblDbStatus) {
+        const mode = (dbStatus.journal_mode || 'wal').toUpperCase();
+        lblDbStatus.textContent = `${mode} Active • ${dbStatus.integrity === 'ok' ? 'ACID Healthy' : 'Check Integrity'}`;
+      }
+    } catch (_) {}
 
     // Render Drive Cards with single subtle metadata label and unmount on hover
     const driveContainer = document.getElementById('drive-list-container');
