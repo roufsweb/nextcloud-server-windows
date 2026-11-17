@@ -16,6 +16,8 @@ pub struct AppConfig {
     pub admin_username: Option<String>,
     #[serde(default)]
     pub trusted_domains: Vec<String>,
+    #[serde(default)]
+    pub autostart: bool,
 }
 
 impl Default for AppConfig {
@@ -47,6 +49,7 @@ impl Default for AppConfig {
             external_drives: Vec::new(),
             admin_username: Some("admin".to_string()),
             trusted_domains: Vec::new(),
+            autostart: false,
         }
     }
 }

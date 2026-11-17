@@ -269,6 +269,36 @@ class AppController {
         }
       });
     }
+
+    // Windows Auto-Start on Boot Toggle
+    const chkAutostart = document.getElementById('chk-autostart');
+    if (chkAutostart) {
+      chkAutostart.addEventListener('change', async () => {
+        const enabled = chkAutostart.checked;
+        this.logViewer.append('CORE', `${enabled ? 'Registering' : 'Unregistering'} Windows startup boot key...`);
+        try {
+          const res = await this.api.setAutostart(enabled);
+          this.logViewer.append('CORE', `Auto-start on boot is now ${res.enabled ? 'ENABLED' : 'DISABLED'}.`);
+          this.updateAutostartUI(res.enabled);
+        } catch (err) {
+          this.logViewer.append('CORE', `Auto-start error: ${err.message}`);
+          chkAutostart.checked = !enabled;
+        }
+      });
+    }
+  }
+
+  updateAutostartUI(enabled) {
+    const chk = document.getElementById('chk-autostart');
+    if (chk) chk.checked = Boolean(enabled);
+    const dot = document.getElementById('dot-autostart-status');
+    const lbl = document.getElementById('lbl-autostart-status');
+    if (dot) {
+      dot.className = enabled ? 'status-dot dot-running' : 'status-dot dot-stopped';
+    }
+    if (lbl) {
+      lbl.textContent = enabled ? 'Start on Boot: Active' : 'Start on Boot: Off';
+    }
   }
 
   initSplashScreen() {
@@ -444,6 +474,12 @@ class AppController {
         const mode = (dbStatus.journal_mode || 'wal').toUpperCase();
         lblDbStatus.textContent = `${mode} Active • ${dbStatus.integrity === 'ok' ? 'ACID Healthy' : 'Check Integrity'}`;
       }
+    } catch (_) {}
+
+    // Render Windows Auto-Start on Boot Status
+    try {
+      const autoData = await this.api.getAutostart();
+      this.updateAutostartUI(autoData.enabled);
     } catch (_) {}
 
     // Render Drive Cards with single subtle metadata label and unmount on hover

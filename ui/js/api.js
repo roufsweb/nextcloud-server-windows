@@ -182,4 +182,25 @@ export class ServerApi {
       return { status: "success", backup_file: "backups/nextcloud_backup_manual.db", size_bytes: 256000 };
     }
   }
+
+  async getAutostart() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/autostart`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { enabled: false };
+  }
+
+  async setAutostart(enabled) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/config/autostart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: Boolean(enabled) })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "success", enabled: Boolean(enabled) };
+    }
+  }
 }

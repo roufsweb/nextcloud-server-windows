@@ -73,6 +73,11 @@ struct DomainRequest {
     domain: String,
 }
 
+#[derive(Deserialize)]
+struct AutostartRequest {
+    enabled: bool,
+}
+
 pub async fn run_dashboard_server(
     port: u16,
     config: Arc<Mutex<AppConfig>>,
@@ -164,7 +169,7 @@ pub async fn run_dashboard_server(
             // Extract body if POST
             let body = req_str.split("\r\n\r\n").nth(1).unwrap_or("");
 
-            let (status_line, content_type, body_response) = if uri == "/api/status" {
+            let (status_line, content_type, body_response) = if method == "GET" && uri == "/api/status" {
                 let cfg = config_clone.lock().await;
                 let drives_info: Vec<DriveInfo> = cfg.external_drives.iter().map(|p| {
                     let (tot, used, free) = drive::get_disk_space(p);
@@ -319,7 +324,7 @@ pub async fn run_dashboard_server(
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
                 }
-            } else if uri == "/api/database/status" {
+            } else if method == "GET" && uri == "/api/database/status" {
                 let cfg = config_clone.lock().await;
                 let db_path = cfg.data_dir.join("nextcloud.db");
                 let status = crate::db::get_status(&db_path, "libSQL / SQLite (WAL)");
@@ -338,6 +343,31 @@ pub async fn run_dashboard_server(
                 match crate::db::backup(&db_path, &backup_dir) {
                     Ok(res) => ("HTTP/1.1 200 OK", "application/json", serde_json::to_string(&res).unwrap_or_default()),
                     Err(e) => ("HTTP/1.1 500 Internal Server Error", "application/json", format!("{{\"error\":\"{}\"}}", e)),
+                }
+            } else if method == "GET" && uri == "/api/config/autostart" {
+                let cfg = config_clone.lock().await;
+                let is_on = if cfg!(target_os = "windows") {
+                    crate::autostart::is_autostart_enabled()
+                } else {
+                    cfg.autostart
+                };
+                let resp = serde_json::json!({
+                    "enabled": is_on
+                });
+                ("HTTP/1.1 200 OK", "application/json", resp.to_string())
+            } else if method == "POST" && uri == "/api/config/autostart" {
+                if let Ok(req) = serde_json::from_str::<AutostartRequest>(body) {
+                    let mut cfg = config_clone.lock().await;
+                    cfg.autostart = req.enabled;
+                    let _ = cfg.save(config_path);
+                    let _ = crate::autostart::set_autostart(req.enabled);
+                    let resp = serde_json::json!({
+                        "status": "success",
+                        "enabled": req.enabled
+                    });
+                    ("HTTP/1.1 200 OK", "application/json", resp.to_string())
+                } else {
+                    ("HTTP/1.1 400 Bad Request", "application/json", "{\"error\":\"invalid payload\"}".into())
                 }
             } else {
                 // Static file serving from ui/

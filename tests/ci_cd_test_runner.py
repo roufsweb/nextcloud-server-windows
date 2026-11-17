@@ -129,6 +129,13 @@ def test_extraction_and_packaging():
     
     if all_found:
         report("All 17 required distribution files verified", True, "Complete portable bundle structure")
+
+    setup_exe = BASE_DIR / "dist" / "nextcloud-windows-aio-v1.0.0-setup-x64.exe"
+    if setup_exe.exists():
+        exe_size_mb = setup_exe.stat().st_size / (1024 * 1024)
+        report("Production Setup.exe installer exists", True, f"File: {setup_exe.name}")
+        report("Production Setup.exe size budget (<500 MB)", exe_size_mb < 500, f"Size: {exe_size_mb:.2f} MB")
+
     return all_found
 
 # ==============================================================================
@@ -243,6 +250,16 @@ def test_supervisor_rest_api():
 
         code, origin_ok = http_req("/api/config/port", "POST", {"port": 8085}, extra_headers={"Origin": f"http://localhost:{TEST_PORT}"})
         report("Supervisor allows local Origin API mutation with 200 OK", code == 200, f"Code: {code}")
+
+        # Test 12: Windows Auto-Start on Boot API (GET & POST)
+        code, auto_get = http_req("/api/config/autostart")
+        report("GET /api/config/autostart responds with status", code == 200 and "enabled" in auto_get, str(auto_get))
+
+        code, auto_enable = http_req("/api/config/autostart", "POST", {"enabled": True})
+        report("POST /api/config/autostart enables auto-start", code == 200 and auto_enable.get("enabled") is True, str(auto_enable))
+
+        code, auto_disable = http_req("/api/config/autostart", "POST", {"enabled": False})
+        report("POST /api/config/autostart disables auto-start", code == 200 and auto_disable.get("enabled") is False, str(auto_disable))
 
     finally:
         print("  -> Stopping supervisor daemon...")
@@ -375,6 +392,13 @@ def test_nextcloud_best_practices_audit():
     report("Caddy blocks external access to /_dashboard*", "path /_dashboard*" in caddy_content and "not remote_ip" in caddy_content)
     report("Nextcloud dual-mode conditional overwriteprotocol configured", "'overwriteprotocol' => (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])" in cfg_content)
     report("Nextcloud Cloudflare CF-Connecting-IP header configured", "'HTTP_CF_CONNECTING_IP'" in cfg_content)
+
+    # 8. Production Installer & Safe Uninstaller Script Audit
+    nsi_file = BASE_DIR / "installer" / "installer.nsi"
+    nsi_content = nsi_file.read_text()
+    report("NSIS installer script present and valid", nsi_file.exists())
+    report("NSIS installer configures Start Menu & Desktop shortcuts", "$SMPROGRAMS" in nsi_content and "$DESKTOP" in nsi_content)
+    report("NSIS uninstaller enforces safe user data preservation", "PreserveUserData" in nsi_content and "KeepPersonalData" in nsi_content)
 
 # ==============================================================================
 # 5. High-Bitrate Media Generation & Stress Benchmark
