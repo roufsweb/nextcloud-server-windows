@@ -11,6 +11,7 @@ class AppController {
 
     this.initNavigation();
     this.initEventListeners();
+    this.initSplashScreen();
     this.refresh();
 
     // Stream initial simulation logs
@@ -131,38 +132,6 @@ class AppController {
       });
     }
 
-    // First-Run Onboarding Modal Handlers
-    const modalOnboard = document.getElementById('onboarding-modal');
-    if (modalOnboard && !localStorage.getItem('nc_onboarded')) {
-      modalOnboard.style.display = 'flex';
-    }
-
-    const btnOnboardSkip = document.getElementById('btn-onboard-skip');
-    if (btnOnboardSkip) {
-      btnOnboardSkip.addEventListener('click', () => {
-        localStorage.setItem('nc_onboarded', 'true');
-        if (modalOnboard) modalOnboard.style.display = 'none';
-        this.logViewer.append('CORE', 'First-run setup completed using default administrator credentials.');
-      });
-    }
-
-    const formOnboard = document.getElementById('form-onboarding');
-    if (formOnboard) {
-      formOnboard.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const user = document.getElementById('onboard-username').value.trim();
-        const pass = document.getElementById('onboard-password').value.trim();
-        if (user && pass) {
-          await this.api.updateAdminUser(user, pass);
-          localStorage.setItem('nc_onboarded', 'true');
-          if (modalOnboard) modalOnboard.style.display = 'none';
-          this.logViewer.append('CORE', `Administrator account configured: ${user}`);
-          alert(`Administrator account created successfully!`);
-          this.refresh();
-        }
-      });
-    }
-
     // In-App Admin User Management Form
     const formUpdateAdmin = document.getElementById('form-update-admin');
     if (formUpdateAdmin) {
@@ -180,6 +149,39 @@ class AppController {
         }
       });
     }
+  }
+
+  initSplashScreen() {
+    const splash = document.getElementById('splash-screen');
+    const splashLogoContainer = document.getElementById('splash-logo-container');
+    const splashLogoImg = document.getElementById('splash-logo-img');
+    const targetBrand = document.querySelector('.sidebar .brand-icon');
+
+    if (!splash || !targetBrand) return;
+
+    // After 900ms of initial loading, smoothly transition the large logo into the top-left sidebar brand
+    setTimeout(() => {
+      const targetRect = targetBrand.getBoundingClientRect();
+      const sourceRect = splashLogoContainer.getBoundingClientRect();
+
+      const deltaX = targetRect.left + (targetRect.width / 2) - (sourceRect.left + (sourceRect.width / 2));
+      const deltaY = targetRect.top + (targetRect.height / 2) - (sourceRect.top + (sourceRect.height / 2));
+      const scale = targetRect.width / sourceRect.width;
+
+      // Animate logo scaling and gliding to the top-left sidebar brand position
+      splashLogoContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale})`;
+      if (splashLogoImg) {
+        splashLogoImg.style.borderRadius = 'var(--radius-md)';
+      }
+
+      // Fade out background and text smoothly
+      splash.classList.add('splash-leaving');
+
+      // Clean up splash screen from layout after transition finishes
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 850);
+    }, 900);
   }
 
   async refresh() {

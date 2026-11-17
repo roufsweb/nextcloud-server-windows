@@ -16,11 +16,12 @@ UI_DIR = BASE_DIR / "ui"
 OUTPUT_DIR = BASE_DIR / "docs" / "img" / "screenshots"
 
 VIEWS = [
-    ("01_dashboard.png", "view-dashboard", "Dashboard Overview & Service Cards"),
-    ("02_storage_drives.png", "view-storage", "Storage & Drives (Direct NTFS Access)"),
-    ("03_cloudflare_tunnel.png", "view-tunnel", "Cloudflare Tunnel Token Configuration"),
-    ("04_users_security.png", "view-users", "Users & Administrative Security"),
-    ("05_in_app_logs.png", "view-logs", "In-App Real-Time Log Console"),
+    ("00_splash_screen.png", "splash", "Startup Splash Screen & Glowing Centered Logo", 350),
+    ("01_dashboard.png", "view-dashboard", "Clean Dashboard Overview & Service Cards", 2800),
+    ("02_storage_drives.png", "view-storage", "Clean Storage & Drives (Direct NTFS Access)", 2800),
+    ("03_cloudflare_tunnel.png", "view-tunnel", "Clean Cloudflare Tunnel Token Configuration", 2800),
+    ("04_users_security.png", "view-users", "Clean Users & Administrative Security", 2800),
+    ("05_in_app_logs.png", "view-logs", "Clean In-App Real-Time Log Console", 2800),
 ]
 
 def main():
@@ -37,9 +38,9 @@ def main():
     try:
         time.sleep(1.2)  # Wait for server to bind
 
-        for filename, view_id, label in VIEWS:
+        for filename, view_id, label, budget_ms in VIEWS:
             out_path = OUTPUT_DIR / filename
-            url = f"http://127.0.0.1:{port}/#{view_id}"
+            url = f"http://127.0.0.1:{port}/" if view_id == "splash" else f"http://127.0.0.1:{port}/#{view_id}"
             print(f"-> Capturing {label} -> {out_path.name}...")
 
             cmd = [
@@ -48,7 +49,7 @@ def main():
                 "--disable-gpu",
                 "--no-sandbox",
                 "--window-size=1240,840",
-                "--virtual-time-budget=2500",
+                f"--virtual-time-budget={budget_ms}",
                 f"--screenshot={out_path}",
                 url
             ]
@@ -58,6 +59,7 @@ def main():
                 size_kb = out_path.stat().st_size // 1024
                 print(f"   ✓ {filename} captured ({size_kb} KB)")
             else:
+                print(f"   ✗ Failed to capture {filename}")
                 print(f"   ✗ Failed to capture {filename}")
 
     finally:
