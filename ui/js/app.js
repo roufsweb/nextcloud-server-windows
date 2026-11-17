@@ -36,6 +36,15 @@ class AppController {
         document.getElementById('current-view-title').textContent = item.querySelector('span').textContent;
       });
     });
+
+    // Check if initial URL hash matches a view
+    const initialHash = window.location.hash ? window.location.hash.replace('#', '') : null;
+    if (initialHash) {
+      const targetNav = document.querySelector(`.nav-item[data-view="${initialHash}"]`);
+      if (targetNav) {
+        targetNav.click();
+      }
+    }
   }
 
   initEventListeners() {
