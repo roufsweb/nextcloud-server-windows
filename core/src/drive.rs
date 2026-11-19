@@ -84,9 +84,12 @@ pub fn open_in_file_manager<P: AsRef<Path>>(path: P) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
-            .arg(p.as_os_str())
-            .spawn()
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let mut cmd = Command::new("explorer");
+        cmd.arg(p.as_os_str())
+           .creation_flags(CREATE_NO_WINDOW);
+        cmd.spawn()
             .with_context(|| format!("Failed to launch explorer for {:?}", p))?;
     }
 
@@ -99,6 +102,33 @@ pub fn open_in_file_manager<P: AsRef<Path>>(path: P) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Native Windows folder selection dialog
+pub fn pick_folder_dialog(description: &str) -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let escaped_desc = description.replace('\'', "''").replace('\"', "\\\"");
+        let ps_cmd = format!(
+            "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = '{}'; $f.ShowNewFolderButton = $true; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ [Console]::Out.Write($f.SelectedPath) }}",
+            escaped_desc
+        );
+        let mut cmd = Command::new("powershell");
+        cmd.args(["-NoProfile", "-NonInteractive", "-Command", &ps_cmd])
+           .creation_flags(CREATE_NO_WINDOW);
+        if let Ok(output) = cmd.output() {
+            if output.status.success() {
+                let res = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !res.is_empty() {
+                    return Some(res);
+                }
+            }
+        }
+    }
+    let _ = description;
+    None
 }
 
 /// Detects available physical drives on Windows

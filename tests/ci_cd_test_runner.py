@@ -194,9 +194,8 @@ def test_supervisor_rest_api():
     proc = subprocess.Popen(
         [str(SUPERVISOR_BIN), "server", "--port", str(TEST_PORT), "--config", str(cfg_path)],
         cwd=BASE_DIR,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
     )
 
     try:

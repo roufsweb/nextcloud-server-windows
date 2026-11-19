@@ -218,6 +218,21 @@ export class ServerApi {
     }
   }
 
+  async pickFolder(title = 'Select Folder') {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/system/pick-folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.path || null;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   async getAutostart() {
     try {
       const res = await fetch(`${this.baseUrl}/api/config/autostart`);

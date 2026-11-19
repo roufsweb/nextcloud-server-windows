@@ -25,7 +25,7 @@
         </div>
         <div>
           <div class="brand-title">Nextcloud AIO</div>
-          <div class="brand-subtitle">v1.0.0 • by roufsweb</div>
+          <div class="brand-subtitle">Windows Server Edition</div>
         </div>
       </div>
 
@@ -107,11 +107,11 @@
               <span class="status-dot dot-running" id="hero-dot"></span>
               <span id="hero-status-tag">Nextcloud Stack Active</span>
             </div>
-            <h2 class="hero-title" id="hero-headline">Nextcloud Server for Windows</h2>
-            <p class="hero-desc">Native 64-bit PHP 8.3 NTS FastCGI engine, libSQL / SQLite WAL zero-daemon database with Redis transactional file locking, and Caddy HTTP/3 reverse proxy.</p>
+            <h2 class="hero-title" id="hero-headline">Nextcloud is Live & Healthy</h2>
+            <p class="hero-desc" id="hero-desc">Your personal cloud is running on this Windows PC. File sync, desktop collaboration, and media streaming are operational.</p>
             <div class="hero-actions">
               <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="hero-btn-open">
-                Open Nextcloud ↗
+                Open Nextcloud Web ↗
               </a>
               <button type="button" class="btn btn-secondary" id="hero-btn-open-folder" title="Open Nextcloud data folder in Windows File Explorer">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -126,15 +126,20 @@
           <div class="hero-meta-panel">
             <div class="hero-meta-item">
               <span class="hero-meta-label">Local Access:</span>
-              <a href="http://localhost:8080" target="_blank" class="mono-link" id="hero-local-url">http://localhost:8080</a>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <a href="http://localhost:8080" target="_blank" class="mono-link" id="hero-local-url">http://localhost:8080</a>
+                <button type="button" class="btn-copy-icon" id="hero-btn-copy-local" data-copy="http://localhost:8080" title="Copy local URL">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
             </div>
             <div class="hero-meta-item">
-              <span class="hero-meta-label">Cloudflare Tunnel:</span>
-              <span id="hero-tunnel-status" class="hero-meta-val text-emerald">Connected</span>
+              <span class="hero-meta-label">Remote Access:</span>
+              <span id="hero-tunnel-status" class="hero-meta-val">Local Only</span>
             </div>
             <div class="hero-meta-item">
-              <span class="hero-meta-label">Idle Footprint:</span>
-              <span class="hero-meta-val text-emerald">&lt; 110 MB RAM</span>
+              <span class="hero-meta-label">Memory Footprint:</span>
+              <span class="hero-meta-val text-emerald">&lt; 110 MB (Zero-Daemon)</span>
             </div>
           </div>
         </div>
@@ -146,8 +151,8 @@
             <div class="card-header">
               <div class="card-title">Nextcloud Core</div>
               <span class="service-status">
-                <span class="status-dot dot-running"></span>
-                <span>Running</span>
+                <span class="status-dot dot-running" id="dot-dash-core"></span>
+                <span id="lbl-dash-core">Running</span>
               </span>
             </div>
             <div class="card-body-text">
@@ -167,8 +172,8 @@
             <div class="card-header">
               <div class="card-title">Caddy Web Server</div>
               <span class="service-status">
-                <span class="status-dot dot-running"></span>
-                <span>Active</span>
+                <span class="status-dot dot-running" id="dot-dash-caddy"></span>
+                <span id="lbl-dash-caddy">Active</span>
               </span>
             </div>
             <div class="card-body-text">
@@ -182,34 +187,37 @@
             <div class="card-header">
               <div class="card-title">PHP 8.3 NTS FastCGI</div>
               <span class="service-status">
-                <span class="status-dot dot-running"></span>
-                <span>127.0.0.1:9000</span>
+                <span class="status-dot dot-running" id="dot-dash-php"></span>
+                <span id="lbl-dash-php">127.0.0.1:9000</span>
               </span>
             </div>
             <div class="card-body-text">
               <p>Engine: <strong>Zend Engine v4.3 + JIT</strong></p>
-              <p>Memory Cache: <strong>APCu + Redis</strong></p>
+              <p>Memory Cache: <strong>APCu + Redis Locking</strong></p>
             </div>
           </div>
 
-          <!-- Cloudflare Tunnel -->
+          <!-- Cloudflare Tunnel / Remote Access -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Cloudflare Tunnel</div>
+              <div class="card-title">Remote Access (Cloudflare)</div>
               <span class="service-status">
-                <span class="status-dot dot-running" id="dot-dash-tunnel"></span>
-                <span id="lbl-dash-tunnel-status">Connected</span>
+                <span class="status-dot dot-stopped" id="dot-dash-tunnel"></span>
+                <span id="lbl-dash-tunnel-status">Not Configured</span>
               </span>
             </div>
-            <div class="card-body-text">
-              <p>Status: <strong>HTTPS Secure Tunnel</strong></p>
-              <div class="endpoint-row">
+            <div class="card-body-text" id="dash-tunnel-body">
+              <p id="lbl-dash-tunnel-desc">Encrypted access from outside your home network.</p>
+              <div class="endpoint-row" id="row-dash-tunnel-endpoint" style="display:none;">
                 <span>External:</span>
-                <a href="https://cloud.yourdomain.com" id="lbl-tunnel-url" target="_blank" class="mono-link">https://cloud.yourdomain.com</a>
-                <button type="button" class="btn-copy-icon" id="btn-copy-tunnel" data-copy="https://cloud.yourdomain.com" title="Copy Public URL">
+                <a href="#" id="lbl-tunnel-url" target="_blank" class="mono-link"></a>
+                <button type="button" class="btn-copy-icon" id="btn-copy-tunnel" data-copy="" title="Copy Public URL">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </button>
               </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-jump-tunnel" style="margin-top:6px; display:inline-flex;">
+                Set Up Remote Access →
+              </button>
             </div>
           </div>
         </div>
@@ -295,17 +303,21 @@
           <div class="card-header">
             <div class="card-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-              Cloudflare Tunnel
+              Cloudflare Tunnel (Encrypted Remote Access)
             </div>
             <span class="service-status">
-              <span class="status-dot dot-running" id="dot-cfg-tunnel"></span>
-              <a href="https://cloud.yourdomain.com" target="_blank" class="mono-link" id="lbl-tunnel-active-url">https://cloud.yourdomain.com</a>
+              <span class="status-dot dot-stopped" id="dot-cfg-tunnel"></span>
+              <a href="#" target="_blank" class="mono-link" id="lbl-tunnel-active-url">Not Connected</a>
             </span>
           </div>
           <form id="form-save-tunnel">
             <div style="display:flex; gap:10px; align-items:center;">
               <input type="text" class="form-input form-input-mono" id="input-tunnel-token" placeholder="Paste Cloudflare Tunnel token (eyJh...)" style="flex:1;">
-              <button type="submit" class="btn btn-primary">Connect Tunnel</button>
+              <button type="submit" class="btn btn-primary" id="btn-submit-tunnel">Connect</button>
+              <button type="button" class="btn btn-destructive-outline" id="btn-disconnect-tunnel" style="display:none;">Disconnect</button>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+              Enables secure private access to your Nextcloud from phones and remote laptops without opening router ports or exposing home IP.
             </div>
           </form>
         </div>

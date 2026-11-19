@@ -299,14 +299,25 @@ class AppController {
       });
     });
 
-    // Browse Folder for Drive Form
+    // Browse Folder for Drive Form (Native Windows Directory Picker)
     const btnBrowseDrive = document.getElementById('btn-browse-drive');
     if (btnBrowseDrive) {
-      btnBrowseDrive.addEventListener('click', () => {
-        const pathInput = document.getElementById('input-drive-path');
-        const chosen = prompt("Enter drive letter or absolute path to mount (e.g. D:\\ or E:\\Storage):", pathInput.value || "D:\\");
-        if (chosen && chosen.trim()) {
-          pathInput.value = chosen.trim();
+      btnBrowseDrive.addEventListener('click', async () => {
+        btnBrowseDrive.classList.add('is-loading');
+        try {
+          const chosen = await this.api.pickFolder('Select Storage Drive or Directory to Mount');
+          if (chosen) {
+            const pathInput = document.getElementById('input-drive-path');
+            const nameInput = document.getElementById('input-drive-name');
+            if (pathInput) pathInput.value = chosen;
+            if (nameInput && !nameInput.value) {
+              const segs = chosen.split(/[\\/]/).filter(Boolean);
+              nameInput.value = segs[segs.length - 1] || 'External Storage';
+            }
+            this.showToast(`Selected: ${chosen}`, 'info');
+          }
+        } finally {
+          btnBrowseDrive.classList.remove('is-loading');
         }
       });
     }
@@ -338,7 +349,7 @@ class AppController {
       });
     }
 
-    // Cloudflare Token Form
+    // Cloudflare Token Form & Disconnect
     const formTunnel = document.getElementById('form-save-tunnel');
     if (formTunnel) {
       formTunnel.addEventListener('submit', async (e) => {
@@ -355,17 +366,50 @@ class AppController {
       });
     }
 
-    // Nextcloud Data Root Change
+    const btnDisconnectTunnel = document.getElementById('btn-disconnect-tunnel');
+    if (btnDisconnectTunnel) {
+      btnDisconnectTunnel.addEventListener('click', async () => {
+        if (confirm("Disconnect Cloudflare Tunnel and revert to local network mode only?")) {
+          btnDisconnectTunnel.classList.add('is-loading');
+          try {
+            await this.api.setTunnelToken('');
+            this.logViewer.append('TUNNEL', 'Cloudflare Tunnel disconnected.');
+            this.showToast('Tunnel disconnected. Server is now in local mode.', 'info');
+            await this.refresh();
+          } finally {
+            btnDisconnectTunnel.classList.remove('is-loading');
+          }
+        }
+      });
+    }
+
+    // Jump from Dashboard to Tunnel Config
+    const btnJumpTunnel = document.getElementById('btn-jump-tunnel');
+    if (btnJumpTunnel) {
+      btnJumpTunnel.addEventListener('click', () => {
+        this.switchToView('view-config');
+        setTimeout(() => {
+          document.getElementById('input-tunnel-token')?.focus();
+        }, 150);
+      });
+    }
+
+    // Nextcloud Data Root Change (Native Windows Folder Picker)
     const btnChangeDataRoot = document.getElementById('btn-change-dataroot');
     if (btnChangeDataRoot) {
       btnChangeDataRoot.addEventListener('click', async () => {
-        const newPath = prompt("Enter new absolute folder path for Nextcloud Data Root:", this.state?.data_dir || "C:\\NextcloudAIO\\data");
-        if (newPath && newPath.trim()) {
-          this.logViewer.append('CORE', `Updating Nextcloud data root to: ${newPath.trim()}`);
-          await this.api.setDataRoot(newPath.trim());
-          this.logViewer.append('CORE', `Applied Windows ACL permissions to data root.`);
-          this.showToast(`Data root updated to: ${newPath.trim()}`, 'success');
-          await this.refresh();
+        btnChangeDataRoot.classList.add('is-loading');
+        try {
+          const newPath = await this.api.pickFolder('Select New Nextcloud Data Directory');
+          if (newPath && newPath.trim() && newPath !== this.state?.data_dir) {
+            this.logViewer.append('CORE', `Updating Nextcloud data root to: ${newPath.trim()}`);
+            await this.api.setDataRoot(newPath.trim());
+            this.logViewer.append('CORE', `Applied Windows ACL permissions to data root.`);
+            this.showToast(`Data root updated to: ${newPath.trim()}`, 'success');
+            await this.refresh();
+          }
+        } finally {
+          btnChangeDataRoot.classList.remove('is-loading');
         }
       });
     }
@@ -558,9 +602,18 @@ class AppController {
     const heroDot = document.getElementById('hero-dot');
     const heroTag = document.getElementById('hero-status-tag');
     const heroHeadline = document.getElementById('hero-headline');
+    const heroDesc = document.getElementById('hero-desc');
     const heroBtnOpen = document.getElementById('hero-btn-open');
     const heroLocalUrl = document.getElementById('hero-local-url');
     const heroTunnelStatus = document.getElementById('hero-tunnel-status');
+
+    // 2x2 Grid Component Status Elements
+    const dotDashCore = document.getElementById('dot-dash-core');
+    const lblDashCore = document.getElementById('lbl-dash-core');
+    const dotDashCaddy = document.getElementById('dot-dash-caddy');
+    const lblDashCaddy = document.getElementById('lbl-dash-caddy');
+    const dotDashPhp = document.getElementById('dot-dash-php');
+    const lblDashPhp = document.getElementById('lbl-dash-php');
 
     if (isRunning) {
       if (headerStatusDot) headerStatusDot.className = 'status-dot dot-running';
@@ -576,12 +629,20 @@ class AppController {
 
       if (heroDot) heroDot.className = 'status-dot dot-running';
       if (heroTag) heroTag.textContent = 'Nextcloud Stack Active';
-      if (heroHeadline) heroHeadline.textContent = 'Nextcloud Server is Active & Healthy';
+      if (heroHeadline) heroHeadline.textContent = 'Nextcloud is Live & Healthy';
+      if (heroDesc) heroDesc.textContent = 'Your personal cloud is running on this Windows PC. File sync, desktop collaboration, and media streaming are operational.';
       if (heroBtnOpen) {
         heroBtnOpen.href = localUrl;
         heroBtnOpen.className = 'btn btn-primary';
         heroBtnOpen.removeAttribute('disabled');
       }
+
+      if (dotDashCore) dotDashCore.className = 'status-dot dot-running';
+      if (lblDashCore) lblDashCore.textContent = 'Running';
+      if (dotDashCaddy) dotDashCaddy.className = 'status-dot dot-running';
+      if (lblDashCaddy) lblDashCaddy.textContent = 'Active';
+      if (dotDashPhp) dotDashPhp.className = 'status-dot dot-running';
+      if (lblDashPhp) lblDashPhp.textContent = '127.0.0.1:9000';
     } else {
       if (headerStatusDot) headerStatusDot.className = 'status-dot dot-stopped';
       if (headerStatusText) headerStatusText.textContent = 'Stopped';
@@ -596,17 +657,27 @@ class AppController {
 
       if (heroDot) heroDot.className = 'status-dot dot-stopped';
       if (heroTag) heroTag.textContent = 'Nextcloud Services Stopped';
-      if (heroHeadline) heroHeadline.textContent = 'Server Stack is Currently Stopped';
+      if (heroHeadline) heroHeadline.textContent = 'Nextcloud is Paused';
+      if (heroDesc) heroDesc.textContent = 'Web server and background sync are currently paused. Click "Start Server" above to resume.';
       if (heroBtnOpen) {
         heroBtnOpen.href = '#';
         heroBtnOpen.className = 'btn btn-primary disabled';
         heroBtnOpen.setAttribute('disabled', 'true');
       }
+
+      if (dotDashCore) dotDashCore.className = 'status-dot dot-stopped';
+      if (lblDashCore) lblDashCore.textContent = 'Stopped';
+      if (dotDashCaddy) dotDashCaddy.className = 'status-dot dot-stopped';
+      if (lblDashCaddy) lblDashCaddy.textContent = 'Stopped';
+      if (dotDashPhp) dotDashPhp.className = 'status-dot dot-stopped';
+      if (lblDashPhp) lblDashPhp.textContent = 'Offline';
     }
 
     if (heroLocalUrl) {
       heroLocalUrl.href = localUrl;
       heroLocalUrl.textContent = localUrl;
+      const copyLocalBtn = document.getElementById('hero-btn-copy-local');
+      if (copyLocalBtn) copyLocalBtn.setAttribute('data-copy', localUrl);
     }
 
     // Update Dashboard Endpoints
@@ -639,23 +710,57 @@ class AppController {
     const isTunnelActive = Boolean(this.state.tunnel_status === 'Active' || this.state.tunnel_status === 'Connected');
     const tunnelUrl = this.state.tunnel_url || 'https://cloud.yourdomain.com';
 
-    if (heroTunnelStatus) {
-      heroTunnelStatus.textContent = isTunnelActive ? 'Connected' : 'Not Configured';
-      heroTunnelStatus.className = isTunnelActive ? 'hero-meta-val text-emerald' : 'hero-meta-val';
-    }
-
-    const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
-    if (tunnelUrlElem) {
-      tunnelUrlElem.href = tunnelUrl;
-      tunnelUrlElem.textContent = tunnelUrl;
-      const copyTunnelBtn = document.getElementById('btn-copy-tunnel');
-      if (copyTunnelBtn) copyTunnelBtn.setAttribute('data-copy', tunnelUrl);
-    }
-
+    const dotDashTunnel = document.getElementById('dot-dash-tunnel');
+    const lblDashTunnelStatus = document.getElementById('lbl-dash-tunnel-status');
+    const lblDashTunnelDesc = document.getElementById('lbl-dash-tunnel-desc');
+    const rowDashTunnelEndpoint = document.getElementById('row-dash-tunnel-endpoint');
+    const btnJumpTunnel = document.getElementById('btn-jump-tunnel');
+    const btnDisconnectTunnel = document.getElementById('btn-disconnect-tunnel');
     const cfgTunnelUrl = document.getElementById('lbl-tunnel-active-url');
-    if (cfgTunnelUrl) {
-      cfgTunnelUrl.href = tunnelUrl;
-      cfgTunnelUrl.textContent = tunnelUrl;
+    const dotCfgTunnel = document.getElementById('dot-cfg-tunnel');
+
+    if (isTunnelActive) {
+      if (heroTunnelStatus) {
+        heroTunnelStatus.textContent = 'Connected • Encrypted';
+        heroTunnelStatus.className = 'hero-meta-val text-emerald';
+      }
+      if (dotDashTunnel) dotDashTunnel.className = 'status-dot dot-running';
+      if (lblDashTunnelStatus) lblDashTunnelStatus.textContent = 'Connected';
+      if (lblDashTunnelDesc) lblDashTunnelDesc.textContent = 'HTTPS encrypted tunnel active via Cloudflare edge.';
+      if (rowDashTunnelEndpoint) rowDashTunnelEndpoint.style.display = 'flex';
+      if (btnJumpTunnel) btnJumpTunnel.style.display = 'none';
+      if (btnDisconnectTunnel) btnDisconnectTunnel.style.display = 'inline-block';
+
+      const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
+      if (tunnelUrlElem) {
+        tunnelUrlElem.href = tunnelUrl;
+        tunnelUrlElem.textContent = tunnelUrl;
+        const copyTunnelBtn = document.getElementById('btn-copy-tunnel');
+        if (copyTunnelBtn) copyTunnelBtn.setAttribute('data-copy', tunnelUrl);
+      }
+
+      if (cfgTunnelUrl) {
+        cfgTunnelUrl.href = tunnelUrl;
+        cfgTunnelUrl.textContent = tunnelUrl;
+      }
+      if (dotCfgTunnel) dotCfgTunnel.className = 'status-dot dot-running';
+    } else {
+      if (heroTunnelStatus) {
+        heroTunnelStatus.textContent = 'Local Only';
+        heroTunnelStatus.className = 'hero-meta-val';
+      }
+      if (dotDashTunnel) dotDashTunnel.className = 'status-dot dot-stopped';
+      if (lblDashTunnelStatus) lblDashTunnelStatus.textContent = 'Not Configured';
+      if (lblDashTunnelDesc) lblDashTunnelDesc.textContent = 'Remote access is disabled. Nextcloud is accessible only on your local network.';
+      if (rowDashTunnelEndpoint) rowDashTunnelEndpoint.style.display = 'none';
+      if (btnJumpTunnel) btnJumpTunnel.style.display = 'inline-flex';
+      if (btnDisconnectTunnel) btnDisconnectTunnel.style.display = 'none';
+
+      if (cfgTunnelUrl) {
+        cfgTunnelUrl.removeAttribute('href');
+        cfgTunnelUrl.textContent = 'Not Connected';
+      }
+      if (dotCfgTunnel) dotCfgTunnel.className = 'status-dot dot-stopped';
     }
 
     // Render storage gauge
@@ -683,24 +788,34 @@ class AppController {
         } else {
           if (detectedCountLbl) detectedCountLbl.textContent = `${detectedDrives.length} detected`;
           detectedContainer.innerHTML = detectedDrives.map(d => `
-            <div class="drive-chip" data-letter="${d.letter}" data-path="${d.path}" data-total="${d.total_gb}" data-free="${d.free_gb}">
+            <div class="drive-chip" data-letter="${d.letter}" data-path="${d.path}" data-mounted="${d.is_mounted}">
               <span class="chip-letter">${d.letter}\\</span>
               <span class="chip-free">${d.free_gb} GB free</span>
-              <span class="chip-action">${d.is_mounted ? 'Mounted ✓' : '+ Mount'}</span>
+              <span class="chip-action ${d.is_mounted ? 'mounted' : 'unmounted'}">${d.is_mounted ? 'Mounted ✓' : '+ 1-Click Mount'}</span>
             </div>
           `).join('');
 
-          // Bind 1-click mount chip handlers
+          // Bind 1-click mount chip handlers with instant mounting
           detectedContainer.querySelectorAll('.drive-chip').forEach(chip => {
             chip.addEventListener('click', async () => {
               const pathVal = chip.getAttribute('data-path');
               const letterVal = chip.getAttribute('data-letter');
-              const pathInput = document.getElementById('input-drive-path');
-              const nameInput = document.getElementById('input-drive-name');
-              if (pathInput) pathInput.value = pathVal;
-              if (nameInput) nameInput.value = `Drive ${letterVal}`;
-              this.showToast(`Selected ${pathVal}. Click "Mount Drive" or press Enter.`, 'info');
-              pathInput?.focus();
+              const isMounted = chip.getAttribute('data-mounted') === 'true';
+
+              if (isMounted) {
+                this.showToast(`Drive ${letterVal}\\ is already mounted. Browse it in Connected Drives below.`, 'info');
+                return;
+              }
+
+              chip.style.opacity = '0.6';
+              this.showToast(`Mounting drive ${letterVal}\\ with NTFS permissions...`, 'info');
+              try {
+                await this.api.mountDrive(pathVal, `Drive ${letterVal}`);
+                this.showToast(`Drive ${letterVal}\\ mounted successfully!`, 'success');
+                await this.refresh();
+              } catch (err) {
+                this.showToast(`Failed to mount ${letterVal}\\: ${err.message}`, 'error');
+              }
             });
           });
         }

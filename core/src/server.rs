@@ -154,13 +154,46 @@ pub async fn run_dashboard_server(
         let logs_clone = Arc::clone(&logs_buffer);
 
         tokio::spawn(async move {
-            let mut buffer = [0u8; 4096];
-            let n = match socket.read(&mut buffer).await {
-                Ok(n) if n > 0 => n,
-                _ => return,
-            };
+            let mut req_bytes = Vec::with_capacity(4096);
+            let mut chunk = [0u8; 4096];
+            let mut content_length = 0usize;
+            let mut header_ended = false;
 
-            let req_str = String::from_utf8_lossy(&buffer[..n]);
+            loop {
+                let n = match socket.read(&mut chunk).await {
+                    Ok(n) if n > 0 => n,
+                    _ => break,
+                };
+                req_bytes.extend_from_slice(&chunk[..n]);
+
+                if !header_ended {
+                    if let Some(pos) = req_bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                        header_ended = true;
+                        let header_part = String::from_utf8_lossy(&req_bytes[..pos]);
+                        for line in header_part.lines() {
+                            let lower = line.to_lowercase();
+                            if lower.starts_with("content-length:") {
+                                if let Some(val) = line.split(':').nth(1) {
+                                    content_length = val.trim().parse::<usize>().unwrap_or(0);
+                                }
+                            }
+                        }
+                        let body_len = req_bytes.len() - (pos + 4);
+                        if body_len >= content_length {
+                            break;
+                        }
+                    }
+                } else {
+                    let header_pos = req_bytes.windows(4).position(|w| w == b"\r\n\r\n").unwrap_or(0);
+                    let body_len = req_bytes.len() - (header_pos + 4);
+                    if body_len >= content_length {
+                        break;
+                    }
+                }
+            }
+
+            if req_bytes.is_empty() { return; }
+            let req_str = String::from_utf8_lossy(&req_bytes);
             let lines: Vec<&str> = req_str.lines().collect();
             if lines.is_empty() { return; }
 
@@ -269,7 +302,7 @@ pub async fn run_dashboard_server(
                     fastcgi_port: cfg.fastcgi_port,
                     data_dir: cfg.data_dir.to_string_lossy().to_string(),
                     tunnel_status: if cfg.cloudflare_token.is_some() { "Connected".into() } else { "Offline".into() },
-                    tunnel_url: "https://cloud.yourdomain.com".into(),
+                    tunnel_url: if cfg.cloudflare_token.is_some() { "https://cloud.yourdomain.com".into() } else { "".into() },
                     drives: drives_info,
                     total_disk_gb: data_tot,
                     used_disk_gb: data_used,
@@ -317,9 +350,16 @@ pub async fn run_dashboard_server(
                 }
             } else if method == "POST" && uri == "/api/tunnel/token" {
                 if let Ok(req) = serde_json::from_str::<TunnelTokenRequest>(body) {
-                    if tunnel::validate_token(&req.token).is_ok() {
+                    let trimmed = req.token.trim();
+                    if trimmed.is_empty() {
                         let mut cfg = config_clone.lock().await;
-                        cfg.cloudflare_token = Some(req.token.trim().to_string());
+                        cfg.cloudflare_token = None;
+                        let _ = cfg.save(config_path);
+                        append_log(&logs_clone, "TUNNEL", "Cloudflare Tunnel token cleared. Remote access disabled.".into()).await;
+                        ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"token_cleared\"}".to_vec())
+                    } else if tunnel::validate_token(trimmed).is_ok() {
+                        let mut cfg = config_clone.lock().await;
+                        cfg.cloudflare_token = Some(trimmed.to_string());
                         let _ = cfg.save(config_path);
                         append_log(&logs_clone, "TUNNEL", "Cloudflare Tunnel token saved and validated.".into()).await;
                         ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"token_saved\"}".to_vec())
@@ -459,6 +499,21 @@ pub async fn run_dashboard_server(
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid path\"}".to_vec())
                 }
+            } else if method == "POST" && uri == "/api/system/pick-folder" {
+                #[derive(serde::Deserialize)]
+                struct PickReq {
+                    title: Option<String>,
+                }
+                let title = serde_json::from_str::<PickReq>(body)
+                    .ok()
+                    .and_then(|r| r.title)
+                    .unwrap_or_else(|| "Select Nextcloud Folder".to_string());
+                let picked = drive::pick_folder_dialog(&title);
+                let resp = serde_json::json!({
+                    "status": if picked.is_some() { "selected" } else { "cancelled" },
+                    "path": picked
+                });
+                ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&resp).unwrap_or_default())
             } else if method == "GET" && uri == "/api/config/autostart" {
                 let cfg = config_clone.lock().await;
                 let is_on = if cfg!(target_os = "windows") {
