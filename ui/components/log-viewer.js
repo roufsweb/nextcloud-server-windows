@@ -1,6 +1,6 @@
 /**
  * In-App High Performance Log Viewer
- * Implements segmented controls, instant search filtering, and column-aligned monospace streaming
+ * Implements segmented controls, instant search filtering, pause streaming, and virtualized / fast DOM streaming
  */
 
 export class LogViewer {
@@ -11,6 +11,8 @@ export class LogViewer {
     this.filter = 'all';
     this.searchQuery = '';
     this.autoScroll = true;
+    this.isPaused = false;
+    this.seenKeys = new Set();
     this.init();
   }
 
@@ -29,6 +31,7 @@ export class LogViewer {
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="text" class="log-search-input" id="input-log-search" placeholder="Filter logs..." autocomplete="off" spellcheck="false">
+            <button class="btn btn-secondary btn-sm" id="btn-pause-logs" title="Pause or resume live log stream">Pause</button>
             <button class="btn btn-secondary btn-sm" id="btn-copy-logs" title="Copy visible logs">Copy Logs</button>
             <button class="btn btn-secondary btn-sm" id="btn-clear-logs" title="Clear buffer">Clear</button>
           </div>
@@ -42,7 +45,7 @@ export class LogViewer {
 
     // Filter button clicks
     this.container.querySelectorAll('.log-filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         this.container.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.filter = btn.getAttribute('data-filter');
@@ -58,11 +61,36 @@ export class LogViewer {
       });
     }
 
+    // Pause Stream Button
+    const btnPause = document.getElementById('btn-pause-logs');
+    if (btnPause) {
+      btnPause.addEventListener('click', () => {
+        this.isPaused = !this.isPaused;
+        btnPause.textContent = this.isPaused ? 'Resume' : 'Pause';
+        if (this.isPaused) {
+          btnPause.classList.add('btn-warning');
+        } else {
+          btnPause.classList.remove('btn-warning');
+          this.render();
+        }
+      });
+    }
+
+    // Scroll listener for sticky bottom auto-scroll
+    if (this.consoleBody) {
+      this.consoleBody.addEventListener('scroll', () => {
+        const threshold = 40;
+        const distFromBottom = this.consoleBody.scrollHeight - this.consoleBody.scrollTop - this.consoleBody.clientHeight;
+        this.autoScroll = distFromBottom <= threshold;
+      });
+    }
+
     // Clear logs
     const btnClear = document.getElementById('btn-clear-logs');
     if (btnClear) {
       btnClear.addEventListener('click', () => {
         this.buffer = [];
+        this.seenKeys.clear();
         this.render();
       });
     }
@@ -81,13 +109,67 @@ export class LogViewer {
     }
   }
 
-  append(tag, message) {
-    const time = new Date().toTimeString().split(' ')[0];
-    this.buffer.push({ time, tag: tag.toUpperCase(), message });
+  append(tag, message, timeOverride = null) {
+    const time = timeOverride || new Date().toTimeString().split(' ')[0];
+    const key = `${time}|${tag}|${message}`;
+    if (this.seenKeys.has(key)) return;
+    this.seenKeys.add(key);
+
+    const item = { time, tag: tag.toUpperCase(), message };
+    this.buffer.push(item);
     if (this.buffer.length > this.maxLines) {
-      this.buffer.shift();
+      const removed = this.buffer.shift();
+      if (removed) {
+        this.seenKeys.delete(`${removed.time}|${removed.tag}|${removed.message}`);
+      }
     }
-    this.render();
+
+    if (this.isPaused) return;
+
+    // Fast O(1) DOM append when unfiltered
+    if (this.filter === 'all' && !this.searchQuery && this.consoleBody) {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'log-line';
+      lineEl.innerHTML = `
+        <span class="log-time">${item.time}</span>
+        <span class="log-tag tag-${item.tag.toLowerCase()}">[${item.tag}]</span>
+        <span class="log-msg">${this.escapeHtml(item.message)}</span>
+      `;
+      this.consoleBody.appendChild(lineEl);
+      while (this.consoleBody.children.length > this.maxLines) {
+        this.consoleBody.removeChild(this.consoleBody.firstChild);
+      }
+      if (this.autoScroll) {
+        this.consoleBody.scrollTop = this.consoleBody.scrollHeight;
+      }
+    } else {
+      this.render();
+    }
+  }
+
+  syncLogs(newLogs = []) {
+    if (!Array.isArray(newLogs) || newLogs.length === 0) return;
+    let added = false;
+    for (const log of newLogs) {
+      const time = log.time || new Date().toTimeString().split(' ')[0];
+      const tag = (log.tag || 'CORE').toUpperCase();
+      const message = log.message || '';
+      const key = `${time}|${tag}|${message}`;
+      if (!this.seenKeys.has(key)) {
+        this.seenKeys.add(key);
+        this.buffer.push({ time, tag, message });
+        added = true;
+      }
+    }
+    while (this.buffer.length > this.maxLines) {
+      const removed = this.buffer.shift();
+      if (removed) {
+        this.seenKeys.delete(`${removed.time}|${removed.tag}|${removed.message}`);
+      }
+    }
+    if (added && !this.isPaused) {
+      this.render();
+    }
   }
 
   getFilteredLines() {

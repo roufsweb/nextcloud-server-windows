@@ -2,6 +2,17 @@ use std::path::Path;
 use std::process::Command;
 use anyhow::{Context, Result};
 use colored::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AvailableDrive {
+    pub letter: String,
+    pub path: String,
+    pub total_gb: u64,
+    pub free_gb: u64,
+    pub used_gb: u64,
+    pub is_mounted: bool,
+}
 
 /// Grants full permissions and prepares external drives/directories for direct Nextcloud access
 pub fn grant_drive_permissions<P: AsRef<Path>>(drive_path: P) -> Result<()> {
@@ -19,7 +30,7 @@ pub fn grant_drive_permissions<P: AsRef<Path>>(drive_path: P) -> Result<()> {
         println!("{} Applying Windows NTFS ACLs (Full Control with inheritance)...", " ->".yellow());
         // Use universal SID *S-1-1-0 ("Everyone") to work across all language editions of Windows
         let output = Command::new("icacls")
-            .arg(format!("\"{}\"", path_str))
+            .arg(&*path_str)
             .arg("/grant")
             .arg("*S-1-1-0:(OI)(CI)F")
             .arg("/T")
@@ -62,6 +73,74 @@ pub fn verify_drive_read_write<P: AsRef<Path>>(drive_path: P) -> Result<bool> {
     }
     let _ = std::fs::remove_file(test_file);
     Ok(true)
+}
+
+/// Opens a path in Windows Explorer or Linux file manager
+pub fn open_in_file_manager<P: AsRef<Path>>(path: P) -> Result<()> {
+    let p = path.as_ref();
+    if !p.exists() {
+        let _ = std::fs::create_dir_all(p);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(p.as_os_str())
+            .spawn()
+            .with_context(|| format!("Failed to launch explorer for {:?}", p))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("xdg-open")
+            .arg(p.as_os_str())
+            .spawn()
+            .with_context(|| format!("Failed to open file manager for {:?}", p))?;
+    }
+
+    Ok(())
+}
+
+/// Detects available physical drives on Windows
+#[cfg(target_os = "windows")]
+pub fn get_available_windows_drives(mounted_paths: &[std::path::PathBuf]) -> Vec<AvailableDrive> {
+    extern "system" {
+        fn GetLogicalDrives() -> u32;
+    }
+
+    let mask = unsafe { GetLogicalDrives() };
+    let mut list = Vec::new();
+
+    for i in 0..26 {
+        if (mask & (1 << i)) != 0 {
+            let letter = (b'A' + i as u8) as char;
+            let path_str = format!("{}:\\", letter);
+            let path_buf = std::path::PathBuf::from(&path_str);
+            let (tot, used, free) = get_disk_space(&path_buf);
+            
+            // Filter out virtual empty drives (e.g. unmounted CD-ROMs with 0 bytes)
+            if tot > 0 {
+                let is_mounted = mounted_paths.iter().any(|m| {
+                    m == &path_buf || m.to_string_lossy().to_uppercase().starts_with(&path_str.to_uppercase())
+                });
+
+                list.push(AvailableDrive {
+                    letter: format!("{}:", letter),
+                    path: path_str,
+                    total_gb: tot,
+                    free_gb: free,
+                    used_gb: used,
+                    is_mounted,
+                });
+            }
+        }
+    }
+    list
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn get_available_windows_drives(_mounted_paths: &[std::path::PathBuf]) -> Vec<AvailableDrive> {
+    Vec::new()
 }
 
 /// Retrieves disk storage metrics (Total GB, Used GB, Free GB)

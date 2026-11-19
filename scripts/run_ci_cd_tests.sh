@@ -4,7 +4,8 @@
 # Runs extraction verification, supervisor API test, multi-drive stress tests,
 # Nextcloud config audits, and high-bitrate media benchmarks.
 # ==============================================================================
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"

@@ -73,6 +73,13 @@
           </span>
         </div>
         <div class="top-actions">
+          <!-- Command Palette Shortcut Button -->
+          <button class="btn btn-secondary btn-sm" id="btn-open-palette" title="Quick Actions & Commands (Ctrl+K)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>Quick Actions</span>
+            <kbd class="kbd-shortcut">Ctrl+K</kbd>
+          </button>
+
           <!-- State-aware Server Toggle Control -->
           <button class="btn btn-destructive-outline" id="btn-toggle-server">
             <svg id="icon-toggle-server" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
@@ -93,6 +100,45 @@
 
       <!-- View: Dashboard -->
       <section class="tab-content active" id="view-dashboard">
+        <!-- Modern Hero Status Control Card -->
+        <div class="hero-card">
+          <div class="hero-main">
+            <div class="hero-status-pill">
+              <span class="status-dot dot-running" id="hero-dot"></span>
+              <span id="hero-status-tag">Nextcloud Stack Active</span>
+            </div>
+            <h2 class="hero-title" id="hero-headline">Nextcloud Server for Windows</h2>
+            <p class="hero-desc">Native 64-bit PHP 8.3 NTS FastCGI engine, libSQL / SQLite WAL zero-daemon database with Redis transactional file locking, and Caddy HTTP/3 reverse proxy.</p>
+            <div class="hero-actions">
+              <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="hero-btn-open">
+                Open Nextcloud ↗
+              </a>
+              <button type="button" class="btn btn-secondary" id="hero-btn-open-folder" title="Open Nextcloud data folder in Windows File Explorer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Open Data Folder
+              </button>
+              <button type="button" class="btn btn-secondary" id="hero-btn-backup" title="Create hot point-in-time database snapshot">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Instant Snapshot
+              </button>
+            </div>
+          </div>
+          <div class="hero-meta-panel">
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Local Access:</span>
+              <a href="http://localhost:8080" target="_blank" class="mono-link" id="hero-local-url">http://localhost:8080</a>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Cloudflare Tunnel:</span>
+              <span id="hero-tunnel-status" class="hero-meta-val text-emerald">Connected</span>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Idle Footprint:</span>
+              <span class="hero-meta-val text-emerald">&lt; 110 MB RAM</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Balanced 2x2 Service Status Grid -->
         <div class="grid-2x2">
           <!-- Nextcloud Core -->
@@ -181,7 +227,13 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               Nextcloud Data Root Directory
             </div>
-            <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Select Folder</button>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-open-dataroot" title="Open data root directly in Windows Explorer">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Open in Explorer
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Change Folder</button>
+            </div>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div>
@@ -218,7 +270,18 @@
             </div>
           </form>
 
-          <h3 style="font-size:0.85rem; margin-top:20px; margin-bottom:10px; font-weight:600; color:var(--text-primary);">Active Connected Drives</h3>
+          <!-- Auto-Detected System Drives Quick-Mount Bar -->
+          <div style="margin-top: 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.76rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Detected Windows Drives (1-Click Mount)</span>
+              <span id="lbl-detected-drives-count" style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);"></span>
+            </div>
+            <div class="detected-drives-bar" id="detected-drives-container">
+              <!-- Populated dynamically with available drive chips -->
+            </div>
+          </div>
+
+          <h3 style="font-size:0.85rem; margin-top:14px; margin-bottom:10px; font-weight:600; color:var(--text-primary);">Active Connected Drives</h3>
           <div class="drive-list" id="drive-list-container">
             <!-- Driven dynamically populated by app.js -->
           </div>
@@ -411,6 +474,27 @@
           <div class="splash-progress-bar"></div>
         </div>
         <div class="splash-status-text" id="splash-status-text">Starting server supervisor...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Command Palette Modal (Ctrl+K) -->
+  <div id="command-palette-modal" class="cmd-modal-backdrop">
+    <div class="cmd-palette" role="dialog" aria-modal="true" aria-label="Command Palette">
+      <div class="cmd-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="cmd-palette-input" class="cmd-input" placeholder="Type a command or jump to view..." autocomplete="off" spellcheck="false">
+        <kbd class="kbd-shortcut">ESC</kbd>
+      </div>
+      <div class="cmd-list" id="cmd-palette-list">
+        <!-- Populated dynamically with searchable commands -->
+      </div>
+      <div class="cmd-footer">
+        <span>Use <kbd class="kbd-shortcut">↑</kbd> <kbd class="kbd-shortcut">↓</kbd> to navigate</span>
+        <span>Press <kbd class="kbd-shortcut">ENTER</kbd> to select</span>
       </div>
     </div>
   </div>

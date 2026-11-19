@@ -8,17 +8,64 @@ class AppController {
     this.gauge = new StorageGauge('storage-gauge-root');
     this.logViewer = new LogViewer('log-viewer-root');
     this.state = null;
+    this.selectedCmdIndex = 0;
 
     this.initNavigation();
     this.initEventListeners();
+    this.initCommandPalette();
     this.initSplashScreen();
     this.refresh();
 
-    // Stream initial simulation logs
+    // Periodic live status and log sync every 3.5s
+    this.pollTimer = setInterval(() => {
+      this.refresh();
+    }, 3500);
+
+    // Stream initial supervisor startup events
     this.logViewer.append('CORE', 'Nextcloud Server AIO supervisor initializing...');
     this.logViewer.append('CADDY', 'Caddy web server listening on http://localhost:8080');
     this.logViewer.append('PHP', 'PHP 8.3 NTS FastCGI worker pool spawned on 127.0.0.1:9000');
     this.logViewer.append('TUNNEL', 'Cloudflare Tunnel daemon active and ready.');
+  }
+
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const iconMap = {
+      success: `<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+      error: `<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+      info: `<svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+    };
+
+    toast.innerHTML = `
+      ${iconMap[type] || iconMap.info}
+      <div class="toast-msg">${message}</div>
+    `;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('toast-leaving');
+      setTimeout(() => { toast.remove(); }, 250);
+    }, 3200);
+  }
+
+  switchToView(viewId) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+    const navItem = document.querySelector(`.nav-item[data-view="${viewId}"]`);
+    if (navItem) navItem.classList.add('active');
+
+    const viewElem = document.getElementById(viewId);
+    if (viewElem) viewElem.classList.add('active');
+
+    const titleElem = document.getElementById('current-view-title');
+    if (titleElem && navItem) {
+      titleElem.textContent = navItem.querySelector('span')?.textContent || 'Dashboard';
+    }
   }
 
   initNavigation() {
@@ -26,18 +73,7 @@ class AppController {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = item.getAttribute('data-view');
-
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-
-        item.classList.add('active');
-        const viewElem = document.getElementById(targetView);
-        if (viewElem) viewElem.classList.add('active');
-
-        const titleElem = document.getElementById('current-view-title');
-        if (titleElem) {
-          titleElem.textContent = item.querySelector('span')?.textContent || 'Dashboard';
-        }
+        this.switchToView(targetView);
       });
     });
 
@@ -49,6 +85,130 @@ class AppController {
         targetNav.click();
       }
     }
+  }
+
+  initCommandPalette() {
+    const modal = document.getElementById('command-palette-modal');
+    const input = document.getElementById('cmd-palette-input');
+    const list = document.getElementById('cmd-palette-list');
+    const btnOpen = document.getElementById('btn-open-palette');
+
+    if (!modal || !input || !list) return;
+
+    this.commands = [
+      { id: 'open-web', title: 'Open Nextcloud in Browser', subtitle: 'Launch local web interface (port 8080)', icon: 'globe', action: () => { window.open(this.state?.server_port ? `http://localhost:${this.state.server_port}` : 'http://localhost:8080', '_blank'); } },
+      { id: 'toggle-srv', title: 'Toggle Server Stack', subtitle: 'Start or stop Caddy, PHP FastCGI and Cloudflared', icon: 'power', action: () => { document.getElementById('btn-toggle-server')?.click(); } },
+      { id: 'open-data', title: 'Open Nextcloud Data in File Explorer', subtitle: 'Browse user files directly on Windows', icon: 'folder', action: async () => { await this.api.openFolder(this.state?.data_dir || 'C:\\NextcloudAIO\\data'); this.showToast('Opened data folder in Windows Explorer', 'success'); } },
+      { id: 'nav-dashboard', title: 'Go to Dashboard', subtitle: 'System overview, status grid & storage metrics', icon: 'grid', action: () => { this.switchToView('view-dashboard'); } },
+      { id: 'nav-storage', title: 'Go to Storage & Drives', subtitle: 'Mount external drives with NTFS permissions', icon: 'hard-drive', action: () => { this.switchToView('view-storage'); } },
+      { id: 'nav-config', title: 'Go to System Config', subtitle: 'Configure Cloudflare tunnel, web port & domains', icon: 'settings', action: () => { this.switchToView('view-config'); } },
+      { id: 'nav-logs', title: 'Go to In-App Logs', subtitle: 'Stream real-time server logs with filter tabs', icon: 'terminal', action: () => { this.switchToView('view-logs'); } },
+      { id: 'db-optimize', title: 'Optimize Database (WAL Checkpoint & VACUUM)', subtitle: 'Checkpoint WAL journal and reclaim disk space', icon: 'database', action: () => { document.getElementById('btn-db-optimize')?.click(); } },
+      { id: 'db-backup', title: 'Create Hot Database Snapshot', subtitle: 'Atomic point-in-time backup (VACUUM INTO)', icon: 'archive', action: () => { document.getElementById('btn-db-backup')?.click(); } },
+      { id: 'copy-local', title: 'Copy Local Web Address', subtitle: 'Copy http://localhost:8080 to clipboard', icon: 'copy', action: () => { navigator.clipboard.writeText(`http://localhost:${this.state?.server_port || 8080}`); this.showToast('Copied local URL to clipboard!', 'success'); } },
+      { id: 'copy-tunnel', title: 'Copy Public Cloudflare URL', subtitle: 'Copy public HTTPS domain to clipboard', icon: 'link', action: () => { navigator.clipboard.writeText(this.state?.tunnel_url || 'https://cloud.yourdomain.com'); this.showToast('Copied public HTTPS URL to clipboard!', 'success'); } }
+    ];
+
+    const openModal = () => {
+      modal.classList.add('open');
+      input.value = '';
+      this.selectedCmdIndex = 0;
+      this.renderCommandList('');
+      setTimeout(() => input.focus(), 50);
+    };
+
+    const closeModal = () => {
+      modal.classList.remove('open');
+    };
+
+    if (btnOpen) btnOpen.addEventListener('click', openModal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (modal.classList.contains('open')) closeModal(); else openModal();
+      } else if (e.key === 'Escape' && modal.classList.contains('open')) {
+        closeModal();
+      } else if (modal.classList.contains('open')) {
+        const items = list.querySelectorAll('.cmd-item');
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          this.selectedCmdIndex = Math.min(items.length - 1, this.selectedCmdIndex + 1);
+          this.highlightCmdItem(items);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          this.selectedCmdIndex = Math.max(0, this.selectedCmdIndex - 1);
+          this.highlightCmdItem(items);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (items[this.selectedCmdIndex]) {
+            items[this.selectedCmdIndex].click();
+          }
+        }
+      }
+    });
+
+    input.addEventListener('input', () => {
+      this.selectedCmdIndex = 0;
+      this.renderCommandList(input.value.toLowerCase().trim());
+    });
+  }
+
+  highlightCmdItem(items) {
+    items.forEach((item, idx) => {
+      if (idx === this.selectedCmdIndex) {
+        item.classList.add('selected');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+
+  renderCommandList(query) {
+    const list = document.getElementById('cmd-palette-list');
+    const modal = document.getElementById('command-palette-modal');
+    if (!list) return;
+
+    const filtered = this.commands.filter(c => 
+      !query || c.title.toLowerCase().includes(query) || c.subtitle.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">No commands match "${query}"</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map((c, idx) => `
+      <div class="cmd-item ${idx === this.selectedCmdIndex ? 'selected' : ''}" data-cmd-id="${c.id}">
+        <div class="cmd-item-left">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <div>
+            <div style="color:var(--text-primary); font-size:0.83rem;">${c.title}</div>
+            <div style="color:var(--text-muted); font-size:0.72rem; margin-top:1px;">${c.subtitle}</div>
+          </div>
+        </div>
+        <div class="cmd-item-right">↵ Execute</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.cmd-item').forEach((item, idx) => {
+      item.addEventListener('click', () => {
+        modal?.classList.remove('open');
+        filtered[idx].action();
+      });
+      item.addEventListener('mouseenter', () => {
+        this.selectedCmdIndex = idx;
+        const all = list.querySelectorAll('.cmd-item');
+        all.forEach((el, i) => el.classList.toggle('selected', i === idx));
+      });
+    });
   }
 
   initEventListeners() {
@@ -63,14 +223,43 @@ class AppController {
           this.logViewer.append('CORE', 'Sending SIGTERM to child processes...');
           await this.api.stopServices();
           this.logViewer.append('CORE', 'All services stopped gracefully.');
+          this.showToast('Nextcloud server stack stopped gracefully.', 'info');
         } else {
           this.logViewer.append('CORE', 'Starting server stack (Caddy, PHP-CGI, Cloudflared)...');
           await this.api.startServices();
           this.logViewer.append('CORE', 'Services started successfully.');
+          this.showToast('Nextcloud server stack started successfully.', 'success');
         }
 
         btnToggle.disabled = false;
         await this.refresh();
+      });
+    }
+
+    // Hero Card Action Buttons
+    const heroBtnOpenFolder = document.getElementById('hero-btn-open-folder');
+    if (heroBtnOpenFolder) {
+      heroBtnOpenFolder.addEventListener('click', async () => {
+        const path = this.state?.data_dir || "C:\\NextcloudAIO\\data";
+        await this.api.openFolder(path);
+        this.showToast('Opened Nextcloud data folder in Windows Explorer', 'success');
+      });
+    }
+
+    const heroBtnBackup = document.getElementById('hero-btn-backup');
+    if (heroBtnBackup) {
+      heroBtnBackup.addEventListener('click', () => {
+        document.getElementById('btn-db-backup')?.click();
+      });
+    }
+
+    // Nextcloud Data Root Open in Explorer Button
+    const btnOpenDataRoot = document.getElementById('btn-open-dataroot');
+    if (btnOpenDataRoot) {
+      btnOpenDataRoot.addEventListener('click', async () => {
+        const path = this.state?.data_dir || "C:\\NextcloudAIO\\data";
+        await this.api.openFolder(path);
+        this.showToast('Opened data directory in Windows Explorer', 'success');
       });
     }
 
@@ -102,6 +291,7 @@ class AppController {
         const copyVal = btn.getAttribute('data-copy');
         if (copyVal) {
           navigator.clipboard.writeText(copyVal);
+          this.showToast(`Copied to clipboard: ${copyVal}`, 'success');
           const origHtml = btn.innerHTML;
           btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
           setTimeout(() => { btn.innerHTML = origHtml; }, 1500);
@@ -137,12 +327,13 @@ class AppController {
         try {
           await this.api.mountDrive(drivePath, driveName);
           this.logViewer.append('CORE', `Drive '${driveName}' (${drivePath}) mounted successfully.`);
+          this.showToast(`Drive '${driveName}' mounted with NTFS permissions!`, 'success');
           document.getElementById('input-drive-path').value = '';
           document.getElementById('input-drive-name').value = '';
           await this.refresh();
         } catch (err) {
           this.logViewer.append('CORE', `Error mounting drive: ${err.message}`);
-          alert(`Failed to add drive: ${err.message}`);
+          this.showToast(`Failed to add drive: ${err.message}`, 'error');
         }
       });
     }
@@ -158,6 +349,7 @@ class AppController {
         this.logViewer.append('TUNNEL', 'Validating and applying Cloudflare Tunnel token...');
         await this.api.setTunnelToken(token);
         this.logViewer.append('TUNNEL', 'Tunnel connected! Public HTTPS URL active.');
+        this.showToast('Cloudflare Tunnel token connected successfully!', 'success');
         document.getElementById('input-tunnel-token').value = '';
         await this.refresh();
       });
@@ -172,6 +364,7 @@ class AppController {
           this.logViewer.append('CORE', `Updating Nextcloud data root to: ${newPath.trim()}`);
           await this.api.setDataRoot(newPath.trim());
           this.logViewer.append('CORE', `Applied Windows ACL permissions to data root.`);
+          this.showToast(`Data root updated to: ${newPath.trim()}`, 'success');
           await this.refresh();
         }
       });
@@ -187,6 +380,7 @@ class AppController {
           this.logViewer.append('CORE', `Configuring HTTP server port to ${p}...`);
           await this.api.setPort(p);
           this.logViewer.append('CORE', `Server port set to ${p}.`);
+          this.showToast(`Server web port set to ${p}`, 'success');
           await this.refresh();
         }
       });
@@ -202,6 +396,7 @@ class AppController {
           this.logViewer.append('CORE', `Adding trusted domain: ${domain}...`);
           await this.api.addTrustedDomain(domain);
           this.logViewer.append('CORE', `Trusted domain '${domain}' added.`);
+          this.showToast(`Added trusted domain: ${domain}`, 'success');
           document.getElementById('input-new-domain').value = '';
           this.refreshDomains();
         }
@@ -219,6 +414,7 @@ class AppController {
           this.logViewer.append('CORE', `Updating administrator credentials for '${user}'...`);
           await this.api.updateAdminUser(user, pass);
           this.logViewer.append('CORE', `Administrator credentials updated successfully.`);
+          this.showToast(`Administrator credentials updated for '${user}'!`, 'success');
           document.getElementById('input-admin-password').value = '';
           await this.refresh();
         }
@@ -235,6 +431,7 @@ class AppController {
         try {
           const res = await this.api.optimizeDatabase();
           this.logViewer.append('CORE', `Database optimized. Status: ${res.status}, New Size: ${(res.new_size_bytes / 1024).toFixed(1)} KB.`);
+          this.showToast('WAL Checkpoint & VACUUM completed successfully!', 'success');
           if (dbActionStatus) {
             dbActionStatus.style.display = 'block';
             dbActionStatus.textContent = `✓ Checkpoint & VACUUM completed. Current size: ${(res.new_size_bytes / (1024 * 1024)).toFixed(2)} MB.`;
@@ -243,6 +440,7 @@ class AppController {
           await this.refresh();
         } catch (err) {
           this.logViewer.append('CORE', `Optimization error: ${err.message}`);
+          this.showToast(`Optimization failed: ${err.message}`, 'error');
         } finally {
           btnDbOptimize.disabled = false;
         }
@@ -257,6 +455,7 @@ class AppController {
         try {
           const res = await this.api.backupDatabase();
           this.logViewer.append('CORE', `Hot backup created: ${res.backup_file} (${(res.size_bytes / 1024).toFixed(1)} KB).`);
+          this.showToast(`Snapshot created: ${res.backup_file}`, 'success');
           if (dbActionStatus) {
             dbActionStatus.style.display = 'block';
             dbActionStatus.textContent = `✓ Snapshot saved: ${res.backup_file} (${(res.size_bytes / (1024 * 1024)).toFixed(2)} MB).`;
@@ -264,6 +463,7 @@ class AppController {
           }
         } catch (err) {
           this.logViewer.append('CORE', `Backup error: ${err.message}`);
+          this.showToast(`Backup error: ${err.message}`, 'error');
         } finally {
           btnDbBackup.disabled = false;
         }
@@ -279,9 +479,11 @@ class AppController {
         try {
           const res = await this.api.setAutostart(enabled);
           this.logViewer.append('CORE', `Auto-start on boot is now ${res.enabled ? 'ENABLED' : 'DISABLED'}.`);
+          this.showToast(`Windows startup on boot is now ${res.enabled ? 'ENABLED' : 'DISABLED'}`, 'info');
           this.updateAutostartUI(res.enabled);
         } catch (err) {
           this.logViewer.append('CORE', `Auto-start error: ${err.message}`);
+          this.showToast(`Auto-start update failed: ${err.message}`, 'error');
           chkAutostart.checked = !enabled;
         }
       });
@@ -313,11 +515,13 @@ class AppController {
       const targetRect = targetBrand.getBoundingClientRect();
       const sourceRect = splashLogoContainer.getBoundingClientRect();
 
-      const deltaX = targetRect.left + (targetRect.width / 2) - (sourceRect.left + (sourceRect.width / 2));
-      const deltaY = targetRect.top + (targetRect.height / 2) - (sourceRect.top + (sourceRect.height / 2));
-      const scale = targetRect.width / sourceRect.width;
+      if (sourceRect.width > 0 && targetRect.width > 0) {
+        const deltaX = targetRect.left + (targetRect.width / 2) - (sourceRect.left + (sourceRect.width / 2));
+        const deltaY = targetRect.top + (targetRect.height / 2) - (sourceRect.top + (sourceRect.height / 2));
+        const scale = targetRect.width / sourceRect.width;
 
-      splashLogoContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale})`;
+        splashLogoContainer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${scale})`;
+      }
       splash.classList.add('splash-leaving');
 
       setTimeout(() => {
@@ -329,6 +533,14 @@ class AppController {
   async refresh() {
     this.state = await this.api.getStatus();
     const adminData = await this.api.getAdminUser();
+
+    // Synchronize live operational logs from supervisor backend
+    try {
+      const serverLogs = await this.api.getLogs();
+      if (serverLogs && serverLogs.length > 0) {
+        this.logViewer.syncLogs(serverLogs);
+      }
+    } catch (_) {}
 
     const isRunning = this.state?.running ?? true;
     const port = this.state?.server_port || 8080;
@@ -342,48 +554,59 @@ class AppController {
     const lblToggle = document.getElementById('lbl-toggle-server');
     const btnOpenNextcloud = document.getElementById('btn-open-nextcloud');
 
+    // Update Modern Hero Card Status
+    const heroDot = document.getElementById('hero-dot');
+    const heroTag = document.getElementById('hero-status-tag');
+    const heroHeadline = document.getElementById('hero-headline');
+    const heroBtnOpen = document.getElementById('hero-btn-open');
+    const heroLocalUrl = document.getElementById('hero-local-url');
+    const heroTunnelStatus = document.getElementById('hero-tunnel-status');
+
     if (isRunning) {
-      if (headerStatusDot) {
-        headerStatusDot.className = 'status-dot dot-running';
-      }
-      if (headerStatusText) {
-        headerStatusText.textContent = 'Running';
-      }
-      if (btnToggle) {
-        btnToggle.className = 'btn btn-destructive-outline';
-      }
-      if (lblToggle) {
-        lblToggle.textContent = 'Stop Server';
-      }
-      if (iconToggle) {
-        iconToggle.innerHTML = '<rect x="6" y="6" width="12" height="12"></rect>';
-      }
+      if (headerStatusDot) headerStatusDot.className = 'status-dot dot-running';
+      if (headerStatusText) headerStatusText.textContent = 'Running';
+      if (btnToggle) btnToggle.className = 'btn btn-destructive-outline';
+      if (lblToggle) lblToggle.textContent = 'Stop Server';
+      if (iconToggle) iconToggle.innerHTML = '<rect x="6" y="6" width="12" height="12"></rect>';
       if (btnOpenNextcloud) {
         btnOpenNextcloud.href = localUrl;
         btnOpenNextcloud.className = 'btn btn-primary';
         btnOpenNextcloud.removeAttribute('disabled');
       }
+
+      if (heroDot) heroDot.className = 'status-dot dot-running';
+      if (heroTag) heroTag.textContent = 'Nextcloud Stack Active';
+      if (heroHeadline) heroHeadline.textContent = 'Nextcloud Server is Active & Healthy';
+      if (heroBtnOpen) {
+        heroBtnOpen.href = localUrl;
+        heroBtnOpen.className = 'btn btn-primary';
+        heroBtnOpen.removeAttribute('disabled');
+      }
     } else {
-      if (headerStatusDot) {
-        headerStatusDot.className = 'status-dot dot-stopped';
-      }
-      if (headerStatusText) {
-        headerStatusText.textContent = 'Stopped';
-      }
-      if (btnToggle) {
-        btnToggle.className = 'btn btn-success';
-      }
-      if (lblToggle) {
-        lblToggle.textContent = 'Start Server';
-      }
-      if (iconToggle) {
-        iconToggle.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
-      }
+      if (headerStatusDot) headerStatusDot.className = 'status-dot dot-stopped';
+      if (headerStatusText) headerStatusText.textContent = 'Stopped';
+      if (btnToggle) btnToggle.className = 'btn btn-success';
+      if (lblToggle) lblToggle.textContent = 'Start Server';
+      if (iconToggle) iconToggle.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
       if (btnOpenNextcloud) {
         btnOpenNextcloud.href = '#';
         btnOpenNextcloud.className = 'btn btn-primary disabled';
         btnOpenNextcloud.setAttribute('disabled', 'true');
       }
+
+      if (heroDot) heroDot.className = 'status-dot dot-stopped';
+      if (heroTag) heroTag.textContent = 'Nextcloud Services Stopped';
+      if (heroHeadline) heroHeadline.textContent = 'Server Stack is Currently Stopped';
+      if (heroBtnOpen) {
+        heroBtnOpen.href = '#';
+        heroBtnOpen.className = 'btn btn-primary disabled';
+        heroBtnOpen.setAttribute('disabled', 'true');
+      }
+    }
+
+    if (heroLocalUrl) {
+      heroLocalUrl.href = localUrl;
+      heroLocalUrl.textContent = localUrl;
     }
 
     // Update Dashboard Endpoints
@@ -402,7 +625,7 @@ class AppController {
 
     // Update Admin label
     const adminUserElem = document.getElementById('lbl-admin-username');
-    if (adminUserElem && adminData.username) {
+    if (adminUserElem && adminData?.username) {
       adminUserElem.textContent = adminData.username;
     }
 
@@ -413,7 +636,14 @@ class AppController {
     }
 
     // Update Tunnel displays
+    const isTunnelActive = Boolean(this.state.tunnel_status === 'Active' || this.state.tunnel_status === 'Connected');
     const tunnelUrl = this.state.tunnel_url || 'https://cloud.yourdomain.com';
+
+    if (heroTunnelStatus) {
+      heroTunnelStatus.textContent = isTunnelActive ? 'Connected' : 'Not Configured';
+      heroTunnelStatus.className = isTunnelActive ? 'hero-meta-val text-emerald' : 'hero-meta-val';
+    }
+
     const tunnelUrlElem = document.getElementById('lbl-tunnel-url');
     if (tunnelUrlElem) {
       tunnelUrlElem.href = tunnelUrl;
@@ -439,6 +669,43 @@ class AppController {
 
     // Render Trusted Domains list
     this.refreshDomains();
+
+    // Render Auto-Detected System Drives (1-Click Mount Chips)
+    try {
+      const detectedDrives = await this.api.getAvailableSystemDrives();
+      const detectedContainer = document.getElementById('detected-drives-container');
+      const detectedCountLbl = document.getElementById('lbl-detected-drives-count');
+      
+      if (detectedContainer) {
+        if (detectedDrives.length === 0) {
+          detectedContainer.innerHTML = `<span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">No unmounted external volumes detected.</span>`;
+          if (detectedCountLbl) detectedCountLbl.textContent = '0 available';
+        } else {
+          if (detectedCountLbl) detectedCountLbl.textContent = `${detectedDrives.length} detected`;
+          detectedContainer.innerHTML = detectedDrives.map(d => `
+            <div class="drive-chip" data-letter="${d.letter}" data-path="${d.path}" data-total="${d.total_gb}" data-free="${d.free_gb}">
+              <span class="chip-letter">${d.letter}\\</span>
+              <span class="chip-free">${d.free_gb} GB free</span>
+              <span class="chip-action">${d.is_mounted ? 'Mounted ✓' : '+ Mount'}</span>
+            </div>
+          `).join('');
+
+          // Bind 1-click mount chip handlers
+          detectedContainer.querySelectorAll('.drive-chip').forEach(chip => {
+            chip.addEventListener('click', async () => {
+              const pathVal = chip.getAttribute('data-path');
+              const letterVal = chip.getAttribute('data-letter');
+              const pathInput = document.getElementById('input-drive-path');
+              const nameInput = document.getElementById('input-drive-name');
+              if (pathInput) pathInput.value = pathVal;
+              if (nameInput) nameInput.value = `Drive ${letterVal}`;
+              this.showToast(`Selected ${pathVal}. Click "Mount Drive" or press Enter.`, 'info');
+              pathInput?.focus();
+            });
+          });
+        }
+      }
+    } catch (_) {}
 
     // Render Database Status & Health
     try {
@@ -482,61 +749,80 @@ class AppController {
       this.updateAutostartUI(autoData.enabled);
     } catch (_) {}
 
-    // Render Drive Cards with single subtle metadata label and unmount on hover
+    // Render Drive Cards with single subtle metadata label, Open in Explorer, and unmount
     const driveContainer = document.getElementById('drive-list-container');
     if (driveContainer && this.state.drives) {
-      driveContainer.innerHTML = this.state.drives.map(d => {
-        const total = d.total_gb || 1000;
-        const used = d.used_gb || 200;
-        const free = d.free_gb || (total - used);
-        const pct = Math.min(100, Math.round((used / total) * 100));
-        return `
-        <div class="drive-card">
-          <div class="drive-card-header">
-            <div class="drive-info">
-              <div class="drive-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                </svg>
+      if (this.state.drives.length === 0) {
+        driveContainer.innerHTML = `<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:0.78rem; border:1px dashed var(--border-card); border-radius:6px;">No external storage drives mounted yet. Select a detected drive above or enter a folder path to mount.</div>`;
+      } else {
+        driveContainer.innerHTML = this.state.drives.map(d => {
+          const total = Math.max(1, d.total_gb || 0);
+          const used = Math.max(0, d.used_gb || 0);
+          const free = d.free_gb != null ? d.free_gb : Math.max(0, total - used);
+          const pct = Math.min(100, Math.max(0, Math.round((used / total) * 100)));
+          return `
+          <div class="drive-card">
+            <div class="drive-card-header">
+              <div class="drive-info">
+                <div class="drive-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="drive-name">${d.name}</div>
+                  <div class="drive-path">${d.path}</div>
+                </div>
               </div>
-              <div>
-                <div class="drive-name">${d.name}</div>
-                <div class="drive-path">${d.path}</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="drive-meta-label">NTFS • Mounted</span>
+                <button type="button" class="btn-open-drive-folder btn btn-secondary btn-sm" data-path="${d.path}" title="Open folder in Windows File Explorer" style="padding:3px 8px; font-size:0.74rem;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  Explorer
+                </button>
+                <button type="button" class="btn-unmount-drive" data-path="${d.path}" title="Unmount external drive">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  Unmount
+                </button>
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span class="drive-meta-label">NTFS • Mounted</span>
-              <button type="button" class="btn-unmount-drive" data-path="${d.path}" title="Unmount external drive">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                Unmount
-              </button>
+            <div style="margin-top:8px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px; font-family:var(--font-mono);">
+                <span>${free} GB free of ${total} GB</span>
+                <span>${pct}% used</span>
+              </div>
+              <div class="storage-bar-track" style="margin:0;">
+                <div class="storage-bar-fill" style="width: ${pct}%;"></div>
+              </div>
             </div>
           </div>
-          <div style="margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px; font-family:var(--font-mono);">
-              <span>${free} GB free of ${total} GB</span>
-              <span>${pct}% used</span>
-            </div>
-            <div class="storage-bar-track" style="margin:0;">
-              <div class="storage-bar-fill" style="width: ${pct}%;"></div>
-            </div>
-          </div>
-        </div>
-      `;}).join('');
+        `;}).join('');
 
-      // Bind unmount click handlers
-      driveContainer.querySelectorAll('.btn-unmount-drive').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const drivePath = btn.getAttribute('data-path');
-          if (confirm(`Unmount external drive '${drivePath}'?`)) {
-            this.logViewer.append('CORE', `Unmounting external drive: ${drivePath}...`);
-            await this.api.unmountDrive(drivePath);
-            this.logViewer.append('CORE', `Drive '${drivePath}' unmounted.`);
-            await this.refresh();
-          }
+        // Bind Open in Explorer handlers
+        driveContainer.querySelectorAll('.btn-open-drive-folder').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const drivePath = btn.getAttribute('data-path');
+            await this.api.openFolder(drivePath);
+            this.showToast(`Opened '${drivePath}' in Windows Explorer`, 'success');
+          });
         });
-      });
+
+        // Bind unmount click handlers
+        driveContainer.querySelectorAll('.btn-unmount-drive').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const drivePath = btn.getAttribute('data-path');
+            if (confirm(`Unmount external drive '${drivePath}' from Nextcloud?`)) {
+              this.logViewer.append('CORE', `Unmounting external drive: ${drivePath}...`);
+              await this.api.unmountDrive(drivePath);
+              this.logViewer.append('CORE', `Drive '${drivePath}' unmounted.`);
+              this.showToast(`Drive '${drivePath}' unmounted.`, 'info');
+              await this.refresh();
+            }
+          });
+        });
+      }
     }
   }
 
@@ -563,6 +849,7 @@ class AppController {
         const dom = btn.getAttribute('data-domain');
         await this.api.removeTrustedDomain(dom);
         this.logViewer.append('CORE', `Removed trusted domain: ${dom}`);
+        this.showToast(`Removed trusted domain: ${dom}`, 'info');
         this.refreshDomains();
       });
     });

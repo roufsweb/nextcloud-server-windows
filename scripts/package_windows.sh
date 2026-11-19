@@ -3,7 +3,8 @@
 # Package Windows All-In-One Distribution
 # Prepares portable zip bundle ready for Windows users / GitHub Releases
 # ==============================================================================
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 DIST_DIR="dist/nextcloud-windows-aio"
 RELEASE_ZIP="dist/nextcloud-windows-aio-v1.0.0-portable-x64.zip"
@@ -34,14 +35,26 @@ cp LICENSE "${DIST_DIR}/"
 cp THIRD_PARTY_LICENSES.md "${DIST_DIR}/"
 
 # Copy compiled Rust executables
-if [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio.exe" ]; then
+if [ -f "core/target/release/nextcloud-aio.exe" ]; then
+    echo "-> Copying Windows supervisor binary (release)..."
+    cp "core/target/release/nextcloud-aio.exe" "${DIST_DIR}/nextcloud-aio.exe"
+elif [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio.exe" ]; then
     echo "-> Copying cross-compiled Windows supervisor binary..."
     cp "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio.exe" "${DIST_DIR}/nextcloud-aio.exe"
+elif [ -f "core/target/debug/nextcloud-aio.exe" ]; then
+    echo "-> Copying Windows supervisor binary (debug fallback)..."
+    cp "core/target/debug/nextcloud-aio.exe" "${DIST_DIR}/nextcloud-aio.exe"
 fi
 
-if [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio-gui.exe" ]; then
+if [ -f "core/target/release/nextcloud-aio-gui.exe" ]; then
+    echo "-> Copying Windows native GUI subsystem binary (release)..."
+    cp "core/target/release/nextcloud-aio-gui.exe" "${DIST_DIR}/nextcloud-aio-gui.exe"
+elif [ -f "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio-gui.exe" ]; then
     echo "-> Copying cross-compiled Windows native GUI subsystem binary..."
     cp "core/target/x86_64-pc-windows-gnu/release/nextcloud-aio-gui.exe" "${DIST_DIR}/nextcloud-aio-gui.exe"
+elif [ -f "core/target/debug/nextcloud-aio-gui.exe" ]; then
+    echo "-> Copying Windows native GUI subsystem binary (debug fallback)..."
+    cp "core/target/debug/nextcloud-aio-gui.exe" "${DIST_DIR}/nextcloud-aio-gui.exe"
 fi
 
 # Copy runtime binaries if present

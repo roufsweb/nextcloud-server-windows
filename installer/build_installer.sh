@@ -2,7 +2,8 @@
 # ==============================================================================
 # Build Windows Production Installer (Setup.exe) using NSIS
 # ==============================================================================
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${BASE_DIR}"

@@ -3,7 +3,8 @@
 # Frontend Audit & Debloating Verification Script
 # Validates asset size budgets, dead components, and zero-bloat compliance
 # ==============================================================================
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

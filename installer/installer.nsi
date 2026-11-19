@@ -1,7 +1,7 @@
 ; ==============================================================================
 ; Nextcloud Server for Windows (All-In-One) - NSIS Production Installer
-; Features: Modern UI, 64-bit architecture, Start Menu & Desktop shortcuts,
-;           Windows Startup Run registration, and SAFE Uninstaller with data protection.
+; Features: Modern UI, 64-bit architecture, High-Speed extraction & uninstallation,
+;           Start Menu & Desktop shortcuts, and SAFE Uninstaller with data protection.
 ; ==============================================================================
 
 !include "MUI2.nsh"
@@ -16,8 +16,9 @@ InstallDir "$LOCALAPPDATA\Programs\Nextcloud Server Windows"
 InstallDirRegKey HKCU "Software\NextcloudServerWindows" "InstallDir"
 RequestExecutionLevel user ; Clean installation in user space without requiring UAC root
 
-; Compression
+; Compression Configuration (Optimized for speed and high-ratio decompression)
 SetCompressor /SOLID lzma
+SetCompressorDictSize 16
 Unicode True
 
 ; Interface Settings
@@ -61,17 +62,20 @@ VIAddVersionKey "ProductVersion" "1.0.0.0"
 Section "Nextcloud Server Core Stack" SecCore
   SetOutPath "$INSTDIR"
 
-  ; Stop any existing running instances before copying
-  DetailPrint "Checking for running instances..."
-  nsExec::Exec 'taskkill /F /IM nextcloud-aio.exe /T'
-  nsExec::Exec 'taskkill /F /IM nextcloud-aio-gui.exe /T'
-  nsExec::Exec 'taskkill /F /IM caddy.exe /T'
-  nsExec::Exec 'taskkill /F /IM php-cgi.exe /T'
-  nsExec::Exec 'taskkill /F /IM cloudflared.exe /T'
-  Sleep 1000
+  ; Swiftly terminate any running instances in a single fast command
+  DetailPrint "Checking for running Nextcloud instances..."
+  nsExec::Exec 'cmd /c taskkill /F /T /IM nextcloud-aio*.exe /IM caddy.exe /IM php-cgi.exe /IM cloudflared.exe >nul 2>&1'
+
+  ; High-speed extraction: suppress Win32 ListBox GDI redraws for 25,000+ files
+  SetDetailsPrint textonly
+  DetailPrint "Extracting Nextcloud core application files (high-speed unpack)..."
+  SetDetailsPrint none
 
   ; Install everything from the staged portable distribution except user data and database
   File /r /x data /x "nextcloud.db*" /x "*.sqlite" "../dist/nextcloud-windows-aio/*"
+
+  SetDetailsPrint both
+  DetailPrint "Configuring Windows application environment and shortcuts..."
 
   ; Create default empty data directory if not exists
   IfFileExists "$INSTDIR\data\*.*" DataExists CreateData
@@ -114,25 +118,21 @@ SectionEnd
 Var PreserveUserData
 
 Function un.onInit
-  ; Terminate running processes before uninstalling
-  DetailPrint "Terminating Nextcloud background processes..."
-  nsExec::Exec 'taskkill /F /IM nextcloud-aio.exe /T'
-  nsExec::Exec 'taskkill /F /IM nextcloud-aio-gui.exe /T'
-  nsExec::Exec 'taskkill /F /IM caddy.exe /T'
-  nsExec::Exec 'taskkill /F /IM php-cgi.exe /T'
-  nsExec::Exec 'taskkill /F /IM cloudflared.exe /T'
+  ; Swiftly terminate any running instances in a single fast command
+  nsExec::Exec 'cmd /c taskkill /F /T /IM nextcloud-aio*.exe /IM caddy.exe /IM php-cgi.exe /IM cloudflared.exe >nul 2>&1'
+
+  ; Default to preserving personal data
+  StrCpy $PreserveUserData "1"
 
   ; Check if user data directory or database exists
-  StrCpy $PreserveUserData "1" ; Default to preserving user data
   IfFileExists "$INSTDIR\data\*.*" HasData CheckDb
 CheckDb:
   IfFileExists "$INSTDIR\data\nextcloud.db" HasData NoData
 
 HasData:
-  MessageBox MB_YESNOCANCEL|MB_ICONQUESTION \
-    "Nextcloud User Data & Database Protection:$\n$\nExisting user files and database were detected in:$\n$INSTDIR\data$\n$\nWould you like to KEEP your personal files and database?$\n$\n- Click YES to PRESERVE your personal data and database (Recommended).$\n- Click NO to permanently DELETE all personal data and database.$\n- Click CANCEL to abort uninstallation." \
+  MessageBox MB_YESNO|MB_ICONQUESTION \
+    "Nextcloud User Data & Database Protection:$\n$\nExisting user storage and database were detected in:$\n$INSTDIR\data$\n$\nWould you like to KEEP your personal files and database?$\n$\n- Click YES to PRESERVE your personal data and database (Recommended).$\n- Click NO to permanently DELETE all personal data and database." \
     /SD IDYES IDYES KeepPersonalData IDNO DeletePersonalData
-  Abort
 
 KeepPersonalData:
   StrCpy $PreserveUserData "1"
@@ -163,7 +163,11 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\Nextcloud Server for Windows\Uninstall Nextcloud Server.lnk"
   RMDir "$SMPROGRAMS\Nextcloud Server for Windows"
 
-  ; Remove Application Binaries, Runtimes, and UI Files
+  ; High-speed deletion: suppress Win32 ListBox GDI redraws for thousands of deleted files
+  SetDetailsPrint textonly
+  DetailPrint "Removing Nextcloud runtime binaries and application stack..."
+  SetDetailsPrint none
+
   Delete "$INSTDIR\nextcloud-aio.exe"
   Delete "$INSTDIR\nextcloud-aio-gui.exe"
   Delete "$INSTDIR\Nextcloud-AIO.vbs"
@@ -183,16 +187,18 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\logs"
   RMDir /r "$INSTDIR\tmp"
 
-  ; Evaluate User Data Preservation
+  ; Evaluate User Data Preservation (without jarring blocking popups)
   ${If} $PreserveUserData == "1"
-    DetailPrint "Preserving personal files and database in $INSTDIR\data"
-    MessageBox MB_OK|MB_ICONINFORMATION \
-      "Nextcloud application has been uninstalled successfully.$\n$\nYour personal files, documents, and database have been preserved safely at:$\n$INSTDIR\data"
+    SetDetailsPrint both
+    DetailPrint "Personal files and database preserved in: $INSTDIR\data"
+    SetDetailsPrint none
   ${Else}
-    DetailPrint "Removing personal data directory..."
     RMDir /r "$INSTDIR\data"
     RMDir /r "$INSTDIR\config"
     RMDir "$INSTDIR"
   ${EndIf}
+
+  SetDetailsPrint both
+  DetailPrint "Uninstallation complete."
 
 SectionEnd

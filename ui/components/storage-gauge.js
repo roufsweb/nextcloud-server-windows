@@ -6,16 +6,36 @@
 export class StorageGauge {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
+    this.lastRenderKey = null;
   }
 
   render(data) {
     if (!this.container) return;
 
-    const totalGB = data?.total_disk_gb || 2000;
-    const usedGB = data?.used_disk_gb || 340;
+    const totalGB = Math.max(1, data?.total_disk_gb || 2000);
+    const usedGB = Math.max(0, data?.used_disk_gb || 0);
     const freeGB = Math.max(0, totalGB - usedGB);
-    const pctUsed = Math.min(100, Math.round((usedGB / totalGB) * 100));
+    const pctUsed = Math.min(100, Math.max(0, Math.round((usedGB / totalGB) * 100)));
 
+    const renderKey = `${usedGB}-${totalGB}-${pctUsed}`;
+
+    // High performance in-place update if DOM structure is already mounted
+    const existingHeader = this.container.querySelector('.storage-metrics-header');
+    const existingFill = this.container.querySelector('.storage-bar-fill');
+    const existingNextcloudData = this.container.querySelector('.legend-used-text');
+    const existingFreeSpace = this.container.querySelector('.legend-free-text');
+
+    if (existingHeader && existingFill && existingNextcloudData && existingFreeSpace) {
+      if (this.lastRenderKey === renderKey) return;
+      this.lastRenderKey = renderKey;
+      existingHeader.textContent = `${usedGB} GB / ${totalGB} GB (${pctUsed}%)`;
+      existingFill.style.width = `${pctUsed}%`;
+      existingNextcloudData.textContent = `Nextcloud Data (${usedGB} GB)`;
+      existingFreeSpace.textContent = `Free Space (${freeGB} GB)`;
+      return;
+    }
+
+    this.lastRenderKey = renderKey;
     this.container.innerHTML = `
       <div class="card">
         <div class="card-header">
@@ -38,11 +58,11 @@ export class StorageGauge {
           <div class="storage-legend">
             <div class="legend-item">
               <span class="legend-dot" style="background: var(--accent-sky);"></span>
-              <span>Nextcloud Data (${usedGB} GB)</span>
+              <span class="legend-used-text">Nextcloud Data (${usedGB} GB)</span>
             </div>
             <div class="legend-item">
               <span class="legend-dot" style="background: #27272A;"></span>
-              <span>Free Space (${freeGB} GB)</span>
+              <span class="legend-free-text">Free Space (${freeGB} GB)</span>
             </div>
           </div>
         </div>

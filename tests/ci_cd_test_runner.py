@@ -20,11 +20,42 @@ from pathlib import Path
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 DIST_ZIP = BASE_DIR / "dist" / "nextcloud-windows-aio-v1.0.0-portable-x64.zip"
-TEST_ROOT = Path("/mnt/data/test_env")
+
+def resolve_test_root():
+    if os.environ.get("TEST_ROOT"):
+        return Path(os.environ["TEST_ROOT"])
+    if os.path.exists("/mnt/data") and os.access("/mnt/data", os.W_OK):
+        return Path("/mnt/data/test_env")
+    return BASE_DIR / "target" / "test_env"
+
+TEST_ROOT = resolve_test_root()
 SANDBOX_DIR = TEST_ROOT / "nextcloud_aio_sandbox"
 DRIVES_DIR = TEST_ROOT / "simulated_drives"
-FFMPEG_BIN = Path("/mnt/data/tools/bin/ffmpeg")
-SUPERVISOR_BIN = BASE_DIR / "core" / "target" / "release" / "nextcloud-aio"
+
+def resolve_ffmpeg():
+    if Path("/mnt/data/tools/bin/ffmpeg").exists():
+        return Path("/mnt/data/tools/bin/ffmpeg")
+    w = shutil.which("ffmpeg")
+    if w:
+        return Path(w)
+    return Path("/mnt/data/tools/bin/ffmpeg")
+
+FFMPEG_BIN = resolve_ffmpeg()
+
+def resolve_supervisor_bin():
+    candidates = [
+        BASE_DIR / "core" / "target" / "release" / "nextcloud-aio.exe",
+        BASE_DIR / "core" / "target" / "x86_64-pc-windows-gnu" / "release" / "nextcloud-aio.exe",
+        BASE_DIR / "core" / "target" / "debug" / "nextcloud-aio.exe",
+        BASE_DIR / "core" / "target" / "release" / "nextcloud-aio",
+        BASE_DIR / "core" / "target" / "debug" / "nextcloud-aio",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return BASE_DIR / "core" / "target" / "release" / ("nextcloud-aio.exe" if os.name == "nt" else "nextcloud-aio")
+
+SUPERVISOR_BIN = resolve_supervisor_bin()
 
 TEST_PORT = 8192
 BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
@@ -145,6 +176,7 @@ def test_supervisor_rest_api():
     log_header("2. Supervisor Daemon & End-to-End REST API Testing")
     
     # Write a test config inside sandbox
+    SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
     cfg_path = SANDBOX_DIR / "test_config.json"
     init_cfg = {
         "server_port": TEST_PORT,
@@ -263,8 +295,14 @@ def test_supervisor_rest_api():
 
     finally:
         print("  -> Stopping supervisor daemon...")
-        proc.terminate()
-        proc.wait(timeout=3)
+        try:
+            proc.terminate()
+            proc.wait(timeout=3)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
         print("  ✓ Supervisor terminated cleanly.")
 
 # ==============================================================================
@@ -288,7 +326,19 @@ def test_drive_mounting_and_permissions():
         path.mkdir(parents=True, exist_ok=True)
 
     # Re-spawn supervisor on TEST_PORT for drive tests
+    SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
     cfg_path = SANDBOX_DIR / "test_config.json"
+    if not cfg_path.exists():
+        init_cfg = {
+            "server_port": TEST_PORT,
+            "data_dir": str(SANDBOX_DIR / "data"),
+            "external_drives": [],
+            "trusted_domains": ["localhost", "127.0.0.1"],
+            "cloudflare_token": None,
+            "admin_username": "admin"
+        }
+        with open(cfg_path, "w") as f:
+            json.dump(init_cfg, f, indent=2)
     proc = subprocess.Popen(
         [str(SUPERVISOR_BIN), "server", "--port", str(TEST_PORT), "--config", str(cfg_path)],
         cwd=BASE_DIR,
@@ -339,8 +389,14 @@ def test_drive_mounting_and_permissions():
         report("Drives D and F remain mounted", str(drive_specs[0][2]) in remaining_paths and str(drive_specs[2][2]) in remaining_paths)
 
     finally:
-        proc.terminate()
-        proc.wait(timeout=3)
+        try:
+            proc.terminate()
+            proc.wait(timeout=3)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
 # ==============================================================================
 # 4. Nextcloud Best Practices & Server Configuration Audit

@@ -3,7 +3,8 @@
 # Windows Runtime Downloader & Integrity Verifier
 # Safely fetches official Windows x64 binaries into gitignored 'runtime/' folder
 # ==============================================================================
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 RUNTIME_DIR="runtime"
 TMP_DIR="tmp"

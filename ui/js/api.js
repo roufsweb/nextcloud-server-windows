@@ -39,6 +39,20 @@ export class ServerApi {
     return await fetch(`${this.baseUrl}/api/services/stop`, { method: 'POST' });
   }
 
+  async getLogs() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/logs`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return [];
+  }
+
+  async clearLogs() {
+    try {
+      await fetch(`${this.baseUrl}/api/logs/clear`, { method: 'POST' });
+    } catch (_) {}
+  }
+
   async setTunnelToken(token) {
     const res = await fetch(`${this.baseUrl}/api/tunnel/token`, {
       method: 'POST',
@@ -180,6 +194,27 @@ export class ServerApi {
       return await res.json();
     } catch (_) {
       return { status: "success", backup_file: "backups/nextcloud_backup_manual.db", size_bytes: 256000 };
+    }
+  }
+
+  async getAvailableSystemDrives() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/system/drives`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return [];
+  }
+
+  async openFolder(path) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/system/open-folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      });
+      return await res.json();
+    } catch (_) {
+      return { status: "opened" };
     }
   }
 
