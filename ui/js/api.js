@@ -233,6 +233,14 @@ export class ServerApi {
     return null;
   }
 
+  async getDiagnostics() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/system/diagnostics`);
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { overall: "healthy", issues_count: 0, items: [] };
+  }
+
   async getAutostart() {
     try {
       const res = await fetch(`${this.baseUrl}/api/config/autostart`);

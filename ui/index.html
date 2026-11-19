@@ -73,6 +73,13 @@
           </span>
         </div>
         <div class="top-actions">
+          <!-- System Diagnostics & Self-Healing Doctor -->
+          <button class="btn btn-secondary btn-sm" id="btn-open-diagnostics" title="Inspect system health, diagnose issues, and view automated fixes">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            <span>Doctor</span>
+            <span class="diag-badge-pill" id="header-diag-badge" style="display:none;">0</span>
+          </button>
+
           <!-- Command Palette Shortcut Button -->
           <button class="btn btn-secondary btn-sm" id="btn-open-palette" title="Quick Actions & Commands (Ctrl+K)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -141,6 +148,25 @@
               <span class="hero-meta-label">Memory Footprint:</span>
               <span class="hero-meta-val text-emerald">&lt; 110 MB (Zero-Daemon)</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Intelligent Actionable Diagnostic Alert Card (Auto-surfaces issues with What/Why/Fix) -->
+        <div class="diagnostic-card" id="dash-diagnostic-card" style="display:none;">
+          <div class="diagnostic-card-header">
+            <div class="diag-title-area">
+              <div class="diag-icon-badge" id="dash-diag-icon">⚠️</div>
+              <div>
+                <div class="diag-headline" id="dash-diag-headline">Attention Required</div>
+                <div class="diag-subheadline" id="dash-diag-subheadline">Nextcloud Doctor detected an issue with your setup.</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-view-all-diag">
+              Full Diagnostics Report
+            </button>
+          </div>
+          <div class="diagnostic-card-body" id="dash-diag-body">
+            <!-- Dynamically populated with What happened, Why it might have happened, How to fix it -->
           </div>
         </div>
 
@@ -507,6 +533,33 @@
       <div class="cmd-footer">
         <span>Use <kbd class="kbd-shortcut">↑</kbd> <kbd class="kbd-shortcut">↓</kbd> to navigate</span>
         <span>Press <kbd class="kbd-shortcut">ENTER</kbd> to select</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nextcloud System Doctor Diagnostics Modal -->
+  <div id="diagnostics-modal" class="cmd-modal-backdrop">
+    <div class="diag-modal-content" role="dialog" aria-modal="true" aria-label="System Diagnostics">
+      <div class="diag-modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="diag-pulse-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          </div>
+          <div>
+            <h2 style="font-size:1.02rem; font-weight:600; color:#FFFFFF; margin:0;">Nextcloud System Doctor</h2>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0;" id="modal-diag-summary">Automated health inspection & guided self-healing</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-rerun-diagnostics">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            Re-scan
+          </button>
+          <button type="button" class="btn-close-modal" id="btn-close-diagnostics">✕</button>
+        </div>
+      </div>
+      <div class="diag-modal-body" id="modal-diag-list">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>

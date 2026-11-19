@@ -957,3 +957,214 @@
 @keyframes btnSpin {
   to { transform: rotate(360deg); }
 }
+
+/* Nextcloud System Doctor Diagnostic Components */
+.diag-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-amber);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.68rem;
+  border-radius: 9999px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+}
+
+.diag-badge-pill.critical {
+  background: var(--accent-rose);
+  color: #FFF;
+}
+
+.diagnostic-card {
+  margin-bottom: 16px;
+  background: #141113;
+  border: 1px solid #3F2228;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  animation: fadeInDown 0.2s ease;
+}
+
+.diagnostic-card.warning {
+  background: #16130B;
+  border-color: #3D2D10;
+}
+
+.diagnostic-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.diag-title-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diag-icon-badge {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.diag-headline {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #FFF;
+}
+
+.diag-subheadline {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.diag-card-issue {
+  background: #0B0B0E;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+}
+
+.diag-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.diag-section.what .diag-section-label {
+  color: #F87171;
+}
+
+.diag-section.why .diag-section-label {
+  color: #FBBF24;
+}
+
+.diag-section.fix .diag-section-label {
+  color: #34D399;
+}
+
+.diag-section-text {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.diag-action-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* System Doctor Modal */
+.diag-modal-content {
+  width: 620px;
+  max-height: 85vh;
+  background: #101015;
+  border: 1px solid #2B2B36;
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.97);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cmd-modal-backdrop.open .diag-modal-content {
+  transform: scale(1);
+}
+
+.diag-modal-header {
+  padding: 14px 18px;
+  background: #14141A;
+  border-bottom: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.diag-pulse-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-sky);
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.btn-close-modal:hover {
+  color: #FFF;
+  background: #1E1E26;
+}
+
+.diag-modal-body {
+  padding: 14px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diag-item-row {
+  background: #0B0B0E;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.diag-item-row.ok {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.diag-item-row.warning {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: #13100B;
+}
+
+.diag-item-row.error {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: #140E10;
+}
+
+.diag-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.diag-item-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #FFF;
+}

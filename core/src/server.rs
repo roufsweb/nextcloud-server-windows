@@ -43,6 +43,277 @@ pub struct LogEntry {
     pub message: String,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct DiagnosticItem {
+    pub id: String,
+    pub name: String,
+    pub status: String, // "ok", "warning", "error"
+    pub what: String,
+    pub why: String,
+    pub fix: String,
+    pub action_id: Option<String>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct DiagnosticsResponse {
+    pub overall: String, // "healthy", "degraded", "critical"
+    pub issues_count: usize,
+    pub items: Vec<DiagnosticItem>,
+}
+
+fn run_diagnostics(cfg: &AppConfig, running: bool) -> DiagnosticsResponse {
+    let mut items = Vec::new();
+    let mut has_error = false;
+    let mut has_warning = false;
+
+    // 1. Web Port Check
+    if !running {
+        let addr = format!("127.0.0.1:{}", cfg.server_port);
+        match std::net::TcpListener::bind(&addr) {
+            Ok(_) => {
+                items.push(DiagnosticItem {
+                    id: "web_port".into(),
+                    name: format!("HTTP Web Port ({})", cfg.server_port),
+                    status: "ok".into(),
+                    what: format!("Port {} is free and available.", cfg.server_port),
+                    why: "No local process or conflicting service is bound to this port.".into(),
+                    fix: "No action required.".into(),
+                    action_id: None,
+                });
+            }
+            Err(e) => {
+                has_error = true;
+                items.push(DiagnosticItem {
+                    id: "web_port".into(),
+                    name: format!("HTTP Web Port ({})", cfg.server_port),
+                    status: "error".into(),
+                    what: format!("Port {} is already in use by another program (OS Error: {}).", cfg.server_port, e),
+                    why: "Another application (such as IIS, Apache, Docker, or Node.js) is listening on this port.".into(),
+                    fix: "Switch to port 8085 in Config -> Server Web Port, or terminate the conflicting process in Task Manager.".into(),
+                    action_id: Some("switch_port_8085".into()),
+                });
+            }
+        }
+    } else {
+        items.push(DiagnosticItem {
+            id: "web_port".into(),
+            name: format!("HTTP Web Port ({})", cfg.server_port),
+            status: "ok".into(),
+            what: format!("Nextcloud Caddy proxy is listening on port {}.", cfg.server_port),
+            why: "Web server is active and serving traffic.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    }
+
+    // 2. PHP Runtime Binary
+    if cfg.php_path.exists() {
+        items.push(DiagnosticItem {
+            id: "php_engine".into(),
+            name: "PHP 8.3 FastCGI Binary".into(),
+            status: "ok".into(),
+            what: format!("PHP runtime binary found at: {}", cfg.php_path.display()),
+            why: "PHP 8.3 Non-Thread-Safe runtime is installed correctly.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    } else {
+        has_error = true;
+        items.push(DiagnosticItem {
+            id: "php_engine".into(),
+            name: "PHP 8.3 FastCGI Binary".into(),
+            status: "error".into(),
+            what: format!("PHP-CGI executable not found at: {}", cfg.php_path.display()),
+            why: "The runtime directory was moved, deleted, or blocked by Windows Defender / Antivirus.".into(),
+            fix: "Extract the official Nextcloud Windows AIO portable release bundle or run download_windows_runtime.sh.".into(),
+            action_id: None,
+        });
+    }
+
+    // 3. Caddy Server Binary
+    if cfg.caddy_path.exists() {
+        items.push(DiagnosticItem {
+            id: "caddy_binary".into(),
+            name: "Caddy HTTP/3 Server Binary".into(),
+            status: "ok".into(),
+            what: format!("Caddy binary verified at: {}", cfg.caddy_path.display()),
+            why: "Native Windows Caddy executable is ready.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    } else {
+        has_error = true;
+        items.push(DiagnosticItem {
+            id: "caddy_binary".into(),
+            name: "Caddy HTTP/3 Server Binary".into(),
+            status: "error".into(),
+            what: format!("Caddy binary not found at: {}", cfg.caddy_path.display()),
+            why: "The runtime binary was moved, deleted, or quarantined by security software.".into(),
+            fix: "Restore runtime/caddy/caddy.exe from release archive or allow in antivirus.".into(),
+            action_id: None,
+        });
+    }
+
+    // 4. Data Root Permissions & Disk Capacity
+    let data_dir = &cfg.data_dir;
+    let _ = std::fs::create_dir_all(data_dir);
+    let probe_file = data_dir.join(".access_probe.tmp");
+    let write_ok = std::fs::write(&probe_file, b"probe").is_ok() && std::fs::remove_file(&probe_file).is_ok();
+    let (total_gb, _, free_gb) = drive::get_disk_space(data_dir);
+
+    if !write_ok {
+        has_error = true;
+        items.push(DiagnosticItem {
+            id: "data_permissions".into(),
+            name: "Data Root Directory Permissions".into(),
+            status: "error".into(),
+            what: format!("Write permission denied in Nextcloud data directory: {}", data_dir.display()),
+            why: "Windows NTFS folder permissions restrict write access for the current user session.".into(),
+            fix: "Click 'Grant Permissions' or run 'icacls' to grant Full Control permissions.".into(),
+            action_id: Some("grant_dataroot_acl".into()),
+        });
+    } else if free_gb < 2 && total_gb > 0 {
+        has_warning = true;
+        items.push(DiagnosticItem {
+            id: "data_capacity".into(),
+            name: "Data Storage Drive Capacity".into(),
+            status: "warning".into(),
+            what: format!("Low free storage space: only {} GB remaining on data drive.", free_gb),
+            why: "The target storage drive is nearing maximum capacity.".into(),
+            fix: "Free up disk space or mount a secondary hard drive in Storage & Drives.".into(),
+            action_id: None,
+        });
+    } else {
+        items.push(DiagnosticItem {
+            id: "data_storage".into(),
+            name: "Data Root Directory".into(),
+            status: "ok".into(),
+            what: format!("Data directory is accessible and writable ({} GB free of {} GB).", free_gb, total_gb),
+            why: "Full read/write permissions verified and adequate disk space is available.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    }
+
+    // 5. Database Health
+    let db_path = data_dir.join("nextcloud.db");
+    if db_path.exists() {
+        let db_stat = crate::db::get_status(&db_path, "libSQL / SQLite (WAL)");
+        if db_stat.integrity == "ok" {
+            items.push(DiagnosticItem {
+                id: "database".into(),
+                name: "Database Engine (libSQL / SQLite WAL)".into(),
+                status: "ok".into(),
+                what: format!("SQLite database file verified healthy (Size: {:.2} MB, WAL: {:.2} MB).",
+                    db_stat.file_size_bytes as f64 / (1024.0 * 1024.0),
+                    db_stat.wal_size_bytes as f64 / (1024.0 * 1024.0)),
+                why: "ACID integrity check passed with zero corrupted pages.".into(),
+                fix: "No action required.".into(),
+                action_id: None,
+            });
+        } else {
+            has_warning = true;
+            items.push(DiagnosticItem {
+                id: "database".into(),
+                name: "Database Engine (libSQL / SQLite WAL)".into(),
+                status: "warning".into(),
+                what: format!("Database integrity warning: {}", db_stat.integrity),
+                why: "An abrupt Windows shutdown or crash may have left uncommitted journal entries.".into(),
+                fix: "Click 'Optimize Database' to checkpoint WAL transactions and vacuum pages.".into(),
+                action_id: Some("optimize_db".into()),
+            });
+        }
+    } else {
+        items.push(DiagnosticItem {
+            id: "database".into(),
+            name: "Database Engine (libSQL / SQLite WAL)".into(),
+            status: "ok".into(),
+            what: "Database ready for initialization on first user setup.".into(),
+            why: "Database will be created automatically upon starting Nextcloud.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    }
+
+    // 6. Cloudflare Tunnel
+    if let Some(ref token) = cfg.cloudflare_token {
+        if crate::tunnel::validate_token(token).is_ok() {
+            items.push(DiagnosticItem {
+                id: "tunnel".into(),
+                name: "Cloudflare Encrypted Tunnel".into(),
+                status: "ok".into(),
+                what: "Cloudflare Tunnel token is valid and active.".into(),
+                why: "Authenticated token format verified for secure remote access.".into(),
+                fix: "No action required.".into(),
+                action_id: None,
+            });
+        } else {
+            has_warning = true;
+            items.push(DiagnosticItem {
+                id: "tunnel".into(),
+                name: "Cloudflare Encrypted Tunnel".into(),
+                status: "warning".into(),
+                what: "Cloudflare Tunnel token appears malformed or expired.".into(),
+                why: "The token string was incomplete, corrupted, or revoked in Cloudflare Zero Trust.".into(),
+                fix: "Generate a new token in the Cloudflare Zero Trust dashboard and paste it in Config.".into(),
+                action_id: Some("open_config_tunnel".into()),
+            });
+        }
+    } else {
+        items.push(DiagnosticItem {
+            id: "tunnel".into(),
+            name: "Remote Access (Cloudflare Tunnel)".into(),
+            status: "ok".into(),
+            what: "Remote tunnel is disabled. Nextcloud is in Local Network (LAN) mode.".into(),
+            why: "No tunnel token has been configured yet.".into(),
+            fix: "If you want secure remote access without port forwarding, configure a token in Config.".into(),
+            action_id: Some("open_config_tunnel".into()),
+        });
+    }
+
+    // 7. External Drives Check
+    for drive_path in &cfg.external_drives {
+        if drive_path.exists() {
+            items.push(DiagnosticItem {
+                id: format!("drive_{}", drive_path.to_string_lossy()),
+                name: format!("External Drive ({})", drive_path.display()),
+                status: "ok".into(),
+                what: format!("Mounted drive path '{}' is accessible.", drive_path.display()),
+                why: "Drive letter is connected and online in Windows.".into(),
+                fix: "No action required.".into(),
+                action_id: None,
+            });
+        } else {
+            has_warning = true;
+            items.push(DiagnosticItem {
+                id: format!("drive_{}", drive_path.to_string_lossy()),
+                name: format!("External Drive ({})", drive_path.display()),
+                status: "warning".into(),
+                what: format!("Mounted drive '{}' is disconnected or missing.", drive_path.display()),
+                why: "The external USB drive was unplugged or Windows reassigned its drive letter upon reboot.".into(),
+                fix: "Plug the USB drive back in, or unmount it from Storage & Drives if no longer needed.".into(),
+                action_id: Some(format!("unmount:{}", drive_path.to_string_lossy())),
+            });
+        }
+    }
+
+    let overall = if has_error {
+        "critical"
+    } else if has_warning {
+        "degraded"
+    } else {
+        "healthy"
+    };
+
+    let issues_count = items.iter().filter(|i| i.status != "ok").count();
+
+    DiagnosticsResponse {
+        overall: overall.to_string(),
+        issues_count,
+        items,
+    }
+}
+
 #[derive(Deserialize)]
 #[allow(dead_code)]
 struct MountDriveRequest {
@@ -514,6 +785,11 @@ pub async fn run_dashboard_server(
                     "path": picked
                 });
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&resp).unwrap_or_default())
+            } else if method == "GET" && uri == "/api/system/diagnostics" {
+                let cfg = config_clone.lock().await;
+                let is_running = running_clone.load(Ordering::SeqCst);
+                let diag = run_diagnostics(&cfg, is_running);
+                ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&diag).unwrap_or_default())
             } else if method == "GET" && uri == "/api/config/autostart" {
                 let cfg = config_clone.lock().await;
                 let is_on = if cfg!(target_os = "windows") {

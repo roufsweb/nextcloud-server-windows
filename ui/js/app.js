@@ -13,6 +13,7 @@ class AppController {
     this.initNavigation();
     this.initEventListeners();
     this.initCommandPalette();
+    this.initDiagnostics();
     this.initSplashScreen();
     this.refresh();
 
@@ -105,6 +106,7 @@ class AppController {
       { id: 'nav-logs', title: 'Go to In-App Logs', subtitle: 'Stream real-time server logs with filter tabs', icon: 'terminal', action: () => { this.switchToView('view-logs'); } },
       { id: 'db-optimize', title: 'Optimize Database (WAL Checkpoint & VACUUM)', subtitle: 'Checkpoint WAL journal and reclaim disk space', icon: 'database', action: () => { document.getElementById('btn-db-optimize')?.click(); } },
       { id: 'db-backup', title: 'Create Hot Database Snapshot', subtitle: 'Atomic point-in-time backup (VACUUM INTO)', icon: 'archive', action: () => { document.getElementById('btn-db-backup')?.click(); } },
+      { id: 'doctor', title: 'Run Nextcloud Doctor (Diagnostics & Self-Healing)', subtitle: 'Inspect port conflicts, missing binaries, permissions & 1-click fixes', icon: 'activity', action: () => { this.openDiagnosticsModal(); } },
       { id: 'copy-local', title: 'Copy Local Web Address', subtitle: 'Copy http://localhost:8080 to clipboard', icon: 'copy', action: () => { navigator.clipboard.writeText(`http://localhost:${this.state?.server_port || 8080}`); this.showToast('Copied local URL to clipboard!', 'success'); } },
       { id: 'copy-tunnel', title: 'Copy Public Cloudflare URL', subtitle: 'Copy public HTTPS domain to clipboard', icon: 'link', action: () => { navigator.clipboard.writeText(this.state?.tunnel_url || 'https://cloud.yourdomain.com'); this.showToast('Copied public HTTPS URL to clipboard!', 'success'); } }
     ];
@@ -547,6 +549,223 @@ class AppController {
     }
   }
 
+  initDiagnostics() {
+    const modal = document.getElementById('diagnostics-modal');
+    const btnOpen = document.getElementById('btn-open-diagnostics');
+    const btnViewAll = document.getElementById('btn-view-all-diag');
+    const btnClose = document.getElementById('btn-close-diagnostics');
+    const btnRerun = document.getElementById('btn-rerun-diagnostics');
+
+    if (btnOpen) btnOpen.addEventListener('click', () => this.openDiagnosticsModal());
+    if (btnViewAll) btnViewAll.addEventListener('click', () => this.openDiagnosticsModal());
+    if (btnClose) btnClose.addEventListener('click', () => this.closeDiagnosticsModal());
+    if (btnRerun) btnRerun.addEventListener('click', () => this.runDiagnostics());
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) this.closeDiagnosticsModal();
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal?.classList.contains('open')) {
+        this.closeDiagnosticsModal();
+      }
+    });
+  }
+
+  openDiagnosticsModal() {
+    const modal = document.getElementById('diagnostics-modal');
+    if (modal) {
+      modal.classList.add('open');
+      this.runDiagnostics();
+    }
+  }
+
+  closeDiagnosticsModal() {
+    const modal = document.getElementById('diagnostics-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  async runDiagnostics() {
+    const list = document.getElementById('modal-diag-list');
+    const summary = document.getElementById('modal-diag-summary');
+    if (list) {
+      list.innerHTML = `<div style="padding:24px; text-align:center; color:var(--text-muted); font-size:0.82rem;">Scanning network ports, binary runtimes, storage permissions & database integrity...</div>`;
+    }
+
+    try {
+      const data = await this.api.getDiagnostics();
+      if (summary) {
+        summary.textContent = data.overall === 'healthy' 
+          ? 'All subsystems healthy • Zero configuration conflicts'
+          : `${data.issues_count} issue(s) detected • Guided solutions below`;
+      }
+      this.updateDiagnosticsUI(data);
+      this.renderDiagnosticsModal(data);
+    } catch (err) {
+      if (list) {
+        list.innerHTML = `<div style="padding:16px; color:#EF4444; font-size:0.8rem;">Failed to run diagnostics: ${err.message}</div>`;
+      }
+    }
+  }
+
+  async refreshDiagnostics() {
+    try {
+      const data = await this.api.getDiagnostics();
+      this.updateDiagnosticsUI(data);
+    } catch (_) {}
+  }
+
+  updateDiagnosticsUI(data) {
+    const badge = document.getElementById('header-diag-badge');
+    const dashCard = document.getElementById('dash-diagnostic-card');
+    const dashBody = document.getElementById('dash-diag-body');
+    const dashIcon = document.getElementById('dash-diag-icon');
+    const dashHeadline = document.getElementById('dash-diag-headline');
+
+    if (badge) {
+      if (data.issues_count > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = data.issues_count;
+        badge.className = data.overall === 'critical' ? 'diag-badge-pill critical' : 'diag-badge-pill';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (dashCard && dashBody) {
+      if (data.issues_count > 0) {
+        dashCard.style.display = 'block';
+        dashCard.className = data.overall === 'critical' ? 'diagnostic-card' : 'diagnostic-card warning';
+        if (dashIcon) dashIcon.textContent = data.overall === 'critical' ? '🚨' : '⚠️';
+        if (dashHeadline) dashHeadline.textContent = data.overall === 'critical' ? 'Critical Setup Issue Detected' : 'Configuration Attention Required';
+
+        const issueItems = data.items.filter(i => i.status !== 'ok');
+        dashBody.innerHTML = issueItems.map(item => `
+          <div class="diag-card-issue">
+            <div style="font-size:0.82rem; font-weight:600; color:#FFF; display:flex; align-items:center; gap:6px;">
+              <span>${item.status === 'error' ? '🔴' : '🟡'}</span>
+              <span>${item.name}</span>
+            </div>
+            <div class="diag-section what">
+              <span class="diag-section-label">What Happened</span>
+              <span class="diag-section-text">${item.what}</span>
+            </div>
+            <div class="diag-section why">
+              <span class="diag-section-label">Why It Might Have Happened</span>
+              <span class="diag-section-text">${item.why}</span>
+            </div>
+            <div class="diag-section fix">
+              <span class="diag-section-label">How You Can Fix That</span>
+              <span class="diag-section-text">${item.fix}</span>
+            </div>
+            ${item.action_id ? `
+              <div class="diag-action-bar">
+                <button type="button" class="btn btn-secondary btn-sm btn-diag-fix" data-action="${item.action_id}">
+                  Fix Issue Now →
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+
+        this.bindFixActionButtons(dashBody);
+      } else {
+        dashCard.style.display = 'none';
+      }
+    }
+  }
+
+  renderDiagnosticsModal(data) {
+    const list = document.getElementById('modal-diag-list');
+    if (!list) return;
+
+    list.innerHTML = data.items.map(item => {
+      const isOk = item.status === 'ok';
+      return `
+        <div class="diag-item-row ${item.status}">
+          <div class="diag-item-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span>${isOk ? '🟢' : item.status === 'error' ? '🔴' : '🟡'}</span>
+              <span class="diag-item-title">${item.name}</span>
+            </div>
+            <span class="mono-badge" style="font-size:0.7rem; color:${isOk ? 'var(--accent-emerald)' : item.status === 'error' ? '#EF4444' : 'var(--accent-amber)'};">
+              ${isOk ? 'Healthy ✓' : item.status === 'error' ? 'Requires Attention' : 'Warning'}
+            </span>
+          </div>
+          ${!isOk ? `
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+              <div class="diag-section what">
+                <span class="diag-section-label">What Happened</span>
+                <span class="diag-section-text">${item.what}</span>
+              </div>
+              <div class="diag-section why">
+                <span class="diag-section-label">Why It Might Have Happened</span>
+                <span class="diag-section-text">${item.why}</span>
+              </div>
+              <div class="diag-section fix">
+                <span class="diag-section-label">How You Can Fix That</span>
+                <span class="diag-section-text">${item.fix}</span>
+              </div>
+              ${item.action_id ? `
+                <div class="diag-action-bar">
+                  <button type="button" class="btn btn-primary btn-sm btn-diag-fix" data-action="${item.action_id}">
+                    Apply Automated Fix →
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          ` : `
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+              ${item.what}
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+
+    this.bindFixActionButtons(list);
+  }
+
+  bindFixActionButtons(container) {
+    container.querySelectorAll('.btn-diag-fix').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.getAttribute('data-action');
+        btn.classList.add('is-loading');
+
+        try {
+          if (action === 'switch_port_8085') {
+            await this.api.setPort(8085);
+            this.showToast('Web port changed to 8085 successfully!', 'success');
+          } else if (action === 'grant_dataroot_acl') {
+            const dataDir = this.state?.data_dir || 'C:\\NextcloudAIO\\data';
+            await this.api.setDataRoot(dataDir);
+            this.showToast('Granted Full Control NTFS permissions to data root.', 'success');
+          } else if (action === 'optimize_db') {
+            await this.api.optimizeDatabase();
+            this.showToast('WAL Checkpoint & VACUUM completed!', 'success');
+          } else if (action === 'open_config_tunnel') {
+            this.closeDiagnosticsModal();
+            this.switchToView('view-config');
+            document.getElementById('input-tunnel-token')?.focus();
+            return;
+          } else if (action.startsWith('unmount:')) {
+            const targetPath = action.replace('unmount:', '');
+            await this.api.unmountDrive(targetPath);
+            this.showToast(`Unmounted missing drive '${targetPath}'.`, 'info');
+          }
+          await this.refresh();
+          await this.runDiagnostics();
+        } catch (e) {
+          this.showToast(`Fix error: ${e.message}`, 'error');
+        } finally {
+          btn.classList.remove('is-loading');
+        }
+      });
+    });
+  }
+
   initSplashScreen() {
     const splash = document.getElementById('splash-screen');
     const splashLogoContainer = document.getElementById('splash-logo-container');
@@ -939,6 +1158,9 @@ class AppController {
         });
       }
     }
+
+    // Refresh live health and self-healing diagnostics
+    await this.refreshDiagnostics();
   }
 
   async refreshDomains() {
