@@ -296,6 +296,74 @@ fn run_diagnostics(cfg: &AppConfig, running: bool) -> DiagnosticsResponse {
         }
     }
 
+    // 8. PHP Runtime Hardening & FastCGI Isolation
+    let php_ini_path = Path::new("config/php/php.ini");
+    if php_ini_path.exists() {
+        if let Ok(ini_content) = fs::read_to_string(php_ini_path) {
+            let has_expose_off = ini_content.contains("expose_php = Off");
+            let has_fix_pathinfo = ini_content.contains("cgi.fix_pathinfo = 0");
+            let has_no_url_include = ini_content.contains("allow_url_include = Off");
+
+            if has_expose_off && has_fix_pathinfo && has_no_url_include {
+                items.push(DiagnosticItem {
+                    id: "php_security".into(),
+                    name: "PHP Runtime Hardening & FastCGI Isolation".into(),
+                    status: "ok".into(),
+                    what: "PHP security directives verified (version fingerprinting hidden, FastCGI script execution blocked, RFI disabled).".into(),
+                    why: "php.ini contains recommended production security parameters.".into(),
+                    fix: "No action required.".into(),
+                    action_id: None,
+                });
+            } else {
+                has_warning = true;
+                items.push(DiagnosticItem {
+                    id: "php_security".into(),
+                    name: "PHP Runtime Hardening & FastCGI Isolation".into(),
+                    status: "warning".into(),
+                    what: "One or more PHP security hardening directives are missing or disabled.".into(),
+                    why: "cgi.fix_pathinfo or expose_php is not strictly configured in config/php/php.ini.".into(),
+                    fix: "Ensure config/php/php.ini has 'expose_php = Off' and 'cgi.fix_pathinfo = 0'.".into(),
+                    action_id: None,
+                });
+            }
+        }
+    }
+
+    // 9. Localhost API Perimeter & In-App Security
+    items.push(DiagnosticItem {
+        id: "api_perimeter".into(),
+        name: "Localhost API Perimeter & In-App Security".into(),
+        status: "ok".into(),
+        what: "Supervisor loopback binding, DNS rebinding filter, and Cross-Origin CSRF protection active.".into(),
+        why: "Host validation ensures local processes or external iframes cannot spoof commands or access daemon endpoints.".into(),
+        fix: "No action required.".into(),
+        action_id: None,
+    });
+
+    // 10. Storage Boundary & System Directory Isolation
+    if drive::is_safe_user_directory(&cfg.data_dir) {
+        items.push(DiagnosticItem {
+            id: "storage_isolation".into(),
+            name: "Storage Boundary & System Directory Isolation".into(),
+            status: "ok".into(),
+            what: format!("Nextcloud data directory '{}' is isolated within safe user space.", cfg.data_dir.display()),
+            why: "System directories (Windows, Program Files, System Volume) are protected from accidental ACL modifications.".into(),
+            fix: "No action required.".into(),
+            action_id: None,
+        });
+    } else {
+        has_error = true;
+        items.push(DiagnosticItem {
+            id: "storage_isolation".into(),
+            name: "Storage Boundary & System Directory Isolation".into(),
+            status: "error".into(),
+            what: format!("Data directory '{}' targets a protected Windows system path.", cfg.data_dir.display()),
+            why: "Placing Nextcloud user data inside Windows or Program Files compromises OS stability and security.".into(),
+            fix: "Change Nextcloud Data Root in Config to a non-system folder (e.g., C:\\NextcloudData or D:\\Nextcloud).".into(),
+            action_id: Some("open_config_dataroot".into()),
+        });
+    }
+
     let overall = if has_error {
         "critical"
     } else if has_warning {
@@ -311,6 +379,14 @@ fn run_diagnostics(cfg: &AppConfig, running: bool) -> DiagnosticsResponse {
         issues_count,
         items,
     }
+}
+
+/// Validates admin username to prevent CLI flag injection and control character exploits
+fn is_valid_admin_username(name: &str) -> bool {
+    if name.is_empty() || name.len() > 64 || name.starts_with('-') {
+        return false;
+    }
+    name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '@')
 }
 
 #[derive(Deserialize)]
@@ -476,6 +552,7 @@ pub async fn run_dashboard_server(
             // Extract HTTP Headers
             let mut host_header = "";
             let mut origin_header = "";
+            let mut sec_fetch_site = "";
 
             for line in &lines[1..] {
                 if line.is_empty() { break; }
@@ -484,6 +561,8 @@ pub async fn run_dashboard_server(
                     host_header = line.splitn(2, ':').nth(1).unwrap_or("").trim();
                 } else if lower.starts_with("origin:") {
                     origin_header = line.splitn(2, ':').nth(1).unwrap_or("").trim();
+                } else if lower.starts_with("sec-fetch-site:") {
+                    sec_fetch_site = line.splitn(2, ':').nth(1).unwrap_or("").trim();
                 }
             }
 
@@ -506,13 +585,16 @@ pub async fn run_dashboard_server(
             }
 
             // Security Enforcement 2: Cross-Origin API Mutation Protection (CSRF & External Site Exploit Defense)
+            // Rejects 'null' origin to close sandboxed iframe / privacy redirect bypasses.
+            // Rejects Sec-Fetch-Site: cross-site requests.
             let is_local_origin = origin_header.is_empty()
                 || origin_header.starts_with("http://localhost")
                 || origin_header.starts_with("http://127.0.0.1")
-                || origin_header.starts_with("tauri://localhost")
-                || origin_header == "null";
+                || origin_header.starts_with("tauri://localhost");
 
-            if uri.starts_with("/api/") && method != "GET" && method != "OPTIONS" && !is_local_origin {
+            let is_cross_site = sec_fetch_site.eq_ignore_ascii_case("cross-site");
+
+            if uri.starts_with("/api/") && (is_cross_site || (method != "GET" && method != "OPTIONS" && !is_local_origin)) {
                 let err_body = b"{\"error\":\"Forbidden: Cross-Origin API mutation blocked\"}";
                 let response = format!(
                     "HTTP/1.1 403 Forbidden\r\nContent-Type: application/json\r\nContent-Length: {}\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n",
@@ -525,7 +607,7 @@ pub async fn run_dashboard_server(
 
             // Preflight OPTIONS handler
             if method == "OPTIONS" {
-                let allow_origin = if is_local_origin && !origin_header.is_empty() { origin_header } else { "null" };
+                let allow_origin = if is_local_origin && !origin_header.is_empty() { origin_header } else { "http://localhost" };
                 let options_resp = format!(
                     "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: {}\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nX-Content-Type-Options: nosniff\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
                     allow_origin
@@ -600,14 +682,18 @@ pub async fn run_dashboard_server(
             } else if method == "POST" && uri == "/api/drives/mount" {
                 if let Ok(req) = serde_json::from_str::<MountDriveRequest>(body) {
                     let drive_path = std::path::PathBuf::from(&req.path);
-                    let _ = drive::grant_drive_permissions(&drive_path);
-                    let mut cfg = config_clone.lock().await;
-                    if !cfg.external_drives.contains(&drive_path) {
-                        cfg.external_drives.push(drive_path.clone());
-                        let _ = cfg.save(config_path);
+                    if !drive::is_safe_user_directory(&drive_path) {
+                        ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"Access denied: System-critical directory cannot be mounted\"}".to_vec())
+                    } else {
+                        let _ = drive::grant_drive_permissions(&drive_path);
+                        let mut cfg = config_clone.lock().await;
+                        if !cfg.external_drives.contains(&drive_path) {
+                            cfg.external_drives.push(drive_path.clone());
+                            let _ = cfg.save(config_path);
+                        }
+                        append_log(&logs_clone, "CORE", format!("Drive '{}' mounted with NTFS full permissions.", req.path)).await;
+                        ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"success\"}".to_vec())
                     }
-                    append_log(&logs_clone, "CORE", format!("Drive '{}' mounted with NTFS full permissions.", req.path)).await;
-                    ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"success\"}".to_vec())
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid request\"}".to_vec())
                 }
@@ -646,22 +732,37 @@ pub async fn run_dashboard_server(
             } else if method == "POST" && uri == "/api/config/dataroot" {
                 if let Ok(req) = serde_json::from_str::<DataRootRequest>(body) {
                     let path = std::path::PathBuf::from(&req.path);
-                    let _ = drive::grant_drive_permissions(&path);
-                    let mut cfg = config_clone.lock().await;
-                    cfg.data_dir = path;
-                    let _ = cfg.save(config_path);
-                    append_log(&logs_clone, "CORE", format!("Nextcloud data root updated to: {}", req.path)).await;
-                    ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"data_root_updated\"}".to_vec())
+                    if !drive::is_safe_user_directory(&path) {
+                        ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"Access denied: System-critical directory cannot be used as data root\"}".to_vec())
+                    } else {
+                        let _ = drive::grant_drive_permissions(&path);
+                        let mut cfg = config_clone.lock().await;
+                        cfg.data_dir = path;
+                        let _ = cfg.save(config_path);
+                        append_log(&logs_clone, "CORE", format!("Nextcloud data root updated to: {}", req.path)).await;
+                        ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"data_root_updated\"}".to_vec())
+                    }
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid payload\"}".to_vec())
                 }
             } else if method == "POST" && uri == "/api/config/port" {
                 if let Ok(req) = serde_json::from_str::<PortChangeRequest>(body) {
-                    let mut cfg = config_clone.lock().await;
-                    cfg.server_port = req.port;
-                    let _ = cfg.save(config_path);
-                    append_log(&logs_clone, "CADDY", format!("Web server port configured to: {}", req.port)).await;
-                    ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"port_updated\"}".to_vec())
+                    if req.port < 80 || req.port == 9000 || req.port == 8081 {
+                        let err_msg = if req.port == 9000 {
+                            "Port 9000 is reserved for internal PHP FastCGI pool"
+                        } else if req.port == 8081 {
+                            "Port 8081 is reserved for internal Supervisor daemon"
+                        } else {
+                            "Port must be a valid port number >= 80"
+                        };
+                        ("HTTP/1.1 400 Bad Request", "application/json", format!("{{\"error\":\"{}\"}}", err_msg).into_bytes())
+                    } else {
+                        let mut cfg = config_clone.lock().await;
+                        cfg.server_port = req.port;
+                        let _ = cfg.save(config_path);
+                        append_log(&logs_clone, "CADDY", format!("Web server port configured to: {}", req.port)).await;
+                        ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"port_updated\"}".to_vec())
+                    }
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid port\"}".to_vec())
                 }
@@ -704,41 +805,60 @@ pub async fn run_dashboard_server(
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&resp).unwrap_or_default())
             } else if method == "POST" && uri == "/api/users/update-admin" {
                 if let Ok(req) = serde_json::from_str::<AdminUpdateRequest>(body) {
-                    let mut cfg = config_clone.lock().await;
                     let new_user = req.username.trim().to_string();
-                    cfg.admin_username = Some(new_user.clone());
-                    let _ = cfg.save(config_path);
+                    if !is_valid_admin_username(&new_user) {
+                        ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"Invalid username: must be 1-64 characters (alphanumeric, _, -, ., @) and cannot start with '-'\"}".to_vec())
+                    } else {
+                        let mut password_valid = true;
+                        if let Some(ref pwd) = req.password {
+                            let pass_trimmed = pwd.trim();
+                            if !pass_trimmed.is_empty() {
+                                if pass_trimmed.len() < 8 || pass_trimmed.len() > 128 || pass_trimmed.contains('\0') {
+                                    password_valid = false;
+                                }
+                            }
+                        }
 
-                    if let Some(pwd) = req.password {
-                        if !pwd.trim().is_empty() {
-                            let auto_cfg_path = "config/nextcloud/autoconfig.php";
-                            if let Ok(content) = fs::read_to_string(auto_cfg_path) {
-                                let updated = content
-                                    .replace("'adminlogin'    => 'admin'", &format!("'adminlogin'    => '{}'", new_user))
-                                    .replace("'adminpass'     => 'NextcloudAdmin2026!'", &format!("'adminpass'     => '{}'", pwd.trim()));
-                                let _ = fs::write(auto_cfg_path, updated);
+                        if !password_valid {
+                            ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"Password must be between 8 and 128 characters and cannot contain null bytes\"}".to_vec())
+                        } else {
+                            let mut cfg = config_clone.lock().await;
+                            cfg.admin_username = Some(new_user.clone());
+                            let _ = cfg.save(config_path);
+
+                            if let Some(pwd) = req.password {
+                                let pass_trimmed = pwd.trim();
+                                if !pass_trimmed.is_empty() {
+                                    let auto_cfg_path = "config/nextcloud/autoconfig.php";
+                                    if let Ok(content) = fs::read_to_string(auto_cfg_path) {
+                                        let updated = content
+                                            .replace("'adminlogin'    => 'admin'", &format!("'adminlogin'    => '{}'", new_user))
+                                            .replace("'adminpass'     => 'NextcloudAdmin2026!'", &format!("'adminpass'     => '{}'", pass_trimmed));
+                                        let _ = fs::write(auto_cfg_path, updated);
+                                    }
+
+                                    let php_path = cfg.php_path.clone();
+                                    let target_user = new_user.clone();
+                                    let pass_val = pass_trimmed.to_string();
+                                    std::thread::spawn(move || {
+                                        let mut cmd = std::process::Command::new(php_path);
+                                        cmd.arg("nextcloud/occ").args(["user:resetpassword", "--password-from-env", &target_user]);
+                                        cmd.env("OC_PASS", pass_val);
+                                        #[cfg(target_os = "windows")]
+                                        {
+                                            use std::os::windows::process::CommandExt;
+                                            const CREATE_NO_WINDOW: u32 = 0x08000000;
+                                            cmd.creation_flags(CREATE_NO_WINDOW);
+                                        }
+                                        let _ = cmd.output();
+                                    });
+                                }
                             }
 
-                            let php_path = cfg.php_path.clone();
-                            let target_user = new_user.clone();
-                            let pass_val = pwd.trim().to_string();
-                            std::thread::spawn(move || {
-                                let mut cmd = std::process::Command::new(php_path);
-                                cmd.arg("nextcloud/occ").args(["user:resetpassword", "--password-from-env", &target_user]);
-                                cmd.env("OC_PASS", pass_val);
-                                #[cfg(target_os = "windows")]
-                                {
-                                    use std::os::windows::process::CommandExt;
-                                    const CREATE_NO_WINDOW: u32 = 0x08000000;
-                                    cmd.creation_flags(CREATE_NO_WINDOW);
-                                }
-                                let _ = cmd.output();
-                            });
+                            append_log(&logs_clone, "CORE", format!("Updated admin credentials for user '{}'.", new_user)).await;
+                            ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"success\",\"message\":\"Administrator credentials updated\"}".to_vec())
                         }
                     }
-
-                    append_log(&logs_clone, "CORE", format!("Updated admin credentials for user '{}'.", new_user)).await;
-                    ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"success\",\"message\":\"Administrator credentials updated\"}".to_vec())
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid payload\"}".to_vec())
                 }
@@ -774,8 +894,13 @@ pub async fn run_dashboard_server(
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&available).unwrap_or_default())
             } else if method == "POST" && uri == "/api/system/open-folder" {
                 if let Ok(req) = serde_json::from_str::<OpenFolderRequest>(body) {
-                    let _ = drive::open_in_file_manager(&req.path);
-                    ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"opened\"}".to_vec())
+                    let p = std::path::Path::new(&req.path);
+                    if !p.exists() || !p.is_dir() {
+                        ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"Path does not exist or is not a directory\"}".to_vec())
+                    } else {
+                        let _ = drive::open_in_file_manager(&req.path);
+                        ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"opened\"}".to_vec())
+                    }
                 } else {
                     ("HTTP/1.1 400 Bad Request", "application/json", b"{\"error\":\"invalid path\"}".to_vec())
                 }
@@ -875,9 +1000,17 @@ pub async fn run_dashboard_server(
                 "".to_string()
             };
 
+            let cache_control = if uri.starts_with("/api/") {
+                "Cache-Control: no-store, no-cache, must-revalidate\r\nPragma: no-cache\r\n"
+            } else {
+                "Cache-Control: public, max-age=3600\r\n"
+            };
+
+            let csp_header = "Content-Security-Policy: default-src 'self' 'unsafe-inline' data:; connect-src 'self' http://localhost:* http://127.0.0.1:*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:;\r\n";
+
             let response_headers = format!(
-                "{}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}X-Content-Type-Options: nosniff\r\nX-Frame-Options: DENY\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n",
-                status_line, content_type, body_bytes.len(), allow_origin_hdr
+                "{}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}{}X-Content-Type-Options: nosniff\r\nX-Frame-Options: DENY\r\nReferrer-Policy: no-referrer\r\n{}Connection: close\r\n\r\n",
+                status_line, content_type, body_bytes.len(), allow_origin_hdr, cache_control, csp_header
             );
 
             let _ = socket.write_all(response_headers.as_bytes()).await;

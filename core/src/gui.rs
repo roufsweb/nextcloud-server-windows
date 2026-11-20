@@ -97,14 +97,18 @@ pub fn spawn_in_app_gui(port: u16) -> anyhow::Result<Child> {
             .arg(format!("--user-data-dir={}", user_data.display()))
             .arg("--window-size=1240,840")
             .arg("--app-id=NextcloudAIO")
-            .arg("--disable-features=TranslateUI")
+            .arg("--disable-features=TranslateUI,BlinkGenPropertyTrees")
             .arg("--no-first-run")
             .arg("--no-default-browser-check")
             .arg("--disable-background-mode")
             .arg("--disable-extensions")
+            .arg("--disable-plugins")
             .arg("--disable-sync")
             .arg("--disable-component-update")
-            .arg("--disable-default-apps");
+            .arg("--disable-default-apps")
+            .arg("--remote-debugging-port=0")
+            .arg("--disable-dev-shm-usage")
+            .arg("--no-proxy-server");
 
         let child = cmd.spawn()?;
         return Ok(child);

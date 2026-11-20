@@ -80,11 +80,68 @@ pub fn verify_drive_read_write<P: AsRef<Path>>(drive_path: P) -> Result<bool> {
     Ok(true)
 }
 
+/// Validates whether a path is safe for user storage and does not target system-critical directories
+pub fn is_safe_user_directory<P: AsRef<Path>>(path: P) -> bool {
+    let p = path.as_ref();
+    let norm = p.to_string_lossy().to_lowercase().replace('/', "\\");
+    let trimmed = norm.trim();
+
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    // Windows system-critical directory protection
+    let forbidden_prefixes = [
+        "c:\\windows",
+        "c:\\program files",
+        "c:\\program files (x86)",
+        "c:\\programdata",
+        "c:\\system volume information",
+        "c:\\$recycle.bin",
+        "c:\\recovery",
+        "c:\\boot",
+    ];
+
+    for forbidden in &forbidden_prefixes {
+        if trimmed == *forbidden || trimmed.starts_with(&format!("{}\\", forbidden)) {
+            return false;
+        }
+    }
+
+    // Reject bare drive root on C: (e.g., "c:\" or "c:") to prevent granting everyone full control on system drive root
+    if trimmed == "c:" || trimmed == "c:\\" {
+        return false;
+    }
+
+    // Unix / Linux system-critical directory protection
+    let posix_trimmed = p.to_string_lossy().trim().to_string();
+    if posix_trimmed == "/"
+        || posix_trimmed.starts_with("/etc")
+        || posix_trimmed.starts_with("/bin")
+        || posix_trimmed.starts_with("/sbin")
+        || posix_trimmed.starts_with("/usr")
+        || posix_trimmed.starts_with("/lib")
+        || posix_trimmed.starts_with("/boot")
+        || posix_trimmed.starts_with("/sys")
+        || posix_trimmed.starts_with("/proc")
+        || posix_trimmed.starts_with("/root")
+    {
+        return false;
+    }
+
+    true
+}
+
 /// Opens a path in Windows Explorer or Linux file manager
 pub fn open_in_file_manager<P: AsRef<Path>>(path: P) -> Result<()> {
     let p = path.as_ref();
     if !p.exists() {
         let _ = std::fs::create_dir_all(p);
+    }
+
+    // Must be a directory to prevent executing arbitrary binaries/scripts via Windows explorer
+    if !p.is_dir() {
+        anyhow::bail!("Refusing to launch file manager: target path is not a directory: {:?}", p);
     }
 
     #[cfg(target_os = "windows")]
@@ -115,10 +172,15 @@ pub fn pick_folder_dialog(description: &str) -> Option<String> {
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        let escaped_desc = description.replace('\'', "''").replace('\"', "\\\"");
+        // Strictly sanitize description to alphanumeric and basic safe punctuation to prevent PowerShell injection
+        let sanitized: String = description
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_' || *c == '.')
+            .collect();
+        let desc = if sanitized.is_empty() { "Select Nextcloud Folder" } else { &sanitized };
         let ps_cmd = format!(
             "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = '{}'; $f.ShowNewFolderButton = $true; if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ [Console]::Out.Write($f.SelectedPath) }}",
-            escaped_desc
+            desc
         );
         let mut cmd = Command::new("powershell");
         cmd.args(["-NoProfile", "-NonInteractive", "-Command", &ps_cmd])

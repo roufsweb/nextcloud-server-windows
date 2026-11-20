@@ -96,7 +96,20 @@ WshShell.Run "nextcloud-aio-gui.exe", 0, False
 EOF
 
 echo "-> Compressing portable distribution package..."
-(cd dist && rm -f "nextcloud-windows-aio-v1.0.0-portable-x64.zip" && zip -9 -r -q "nextcloud-windows-aio-v1.0.0-portable-x64.zip" nextcloud-windows-aio)
+if command -v zip >/dev/null 2>&1; then
+    (cd dist && rm -f "nextcloud-windows-aio-v1.0.0-portable-x64.zip" && zip -9 -r -q "nextcloud-windows-aio-v1.0.0-portable-x64.zip" nextcloud-windows-aio)
+else
+    python -c "
+import shutil
+from pathlib import Path
+dist = Path('dist')
+zip_path = dist / 'nextcloud-windows-aio-v1.0.0-portable-x64'
+target_file = dist / 'nextcloud-windows-aio-v1.0.0-portable-x64.zip'
+if target_file.exists():
+    target_file.unlink()
+shutil.make_archive(str(zip_path), 'zip', 'dist', 'nextcloud-windows-aio')
+"
+fi
 (cd dist && sha256sum "nextcloud-windows-aio-v1.0.0-portable-x64.zip" > SHA256SUMS.txt)
 
 echo "✓ Distribution archive packaged at: ${RELEASE_ZIP}"

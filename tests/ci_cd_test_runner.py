@@ -443,7 +443,7 @@ def test_nextcloud_best_practices_audit():
     # 7. Caddyfile Security Hardening & Cloudflare Isolation Audit
     caddy_file = BASE_DIR / "config" / "caddy" / "Caddyfile"
     caddy_content = caddy_file.read_text()
-    report("Caddy blocks supervisor internal APIs (/api/services/*)", "path /api/services/*" in caddy_content)
+    report("Caddy blocks supervisor internal APIs (/api/services/*)", "path /api/services/*" in caddy_content or "path /api/*" in caddy_content)
     report("Caddy blocks external access to /_dashboard*", "path /_dashboard*" in caddy_content and "not remote_ip" in caddy_content)
     report("Nextcloud dual-mode conditional overwriteprotocol configured", "'overwriteprotocol' => (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])" in cfg_content)
     report("Nextcloud Cloudflare CF-Connecting-IP header configured", "'HTTP_CF_CONNECTING_IP'" in cfg_content)

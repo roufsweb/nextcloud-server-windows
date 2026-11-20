@@ -15,7 +15,9 @@
         X-Frame-Options "SAMEORIGIN"
         X-Robots-Tag "noindex, nofollow"
         X-XSS-Protection "1; mode=block"
-        Referrer-Policy "no-referrer"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        X-Permitted-Cross-Domain-Policies "none"
     }
 
     # CalDAV and CardDAV redirects
@@ -31,7 +33,7 @@
         path /config/*
         path /db_structure
         path /.xml
-        path /README
+        path /README*
         path /3rdparty/*
         path /lib/*
         path /templates/*
@@ -41,6 +43,11 @@
         path /indie*
         path /db_*
         path /console*
+        path /.git*
+        path /.env*
+        path /config.sample.php
+        path /autoconfig.php
+        path /api/*
         path /api/services/*
         path /api/drives/*
         path /api/tunnel/*
