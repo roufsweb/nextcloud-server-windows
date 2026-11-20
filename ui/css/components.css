@@ -1168,3 +1168,181 @@
   font-weight: 600;
   color: #FFF;
 }
+
+/* ==========================================================================
+   Nextcloud User Avatar Profile Dropdown Menu
+   ========================================================================== */
+.user-dropdown-menu {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  width: 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 8px 0;
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+.user-dropdown-menu.active {
+  display: flex;
+}
+
+.user-menu-header {
+  padding: 10px 16px 12px 16px;
+  border-bottom: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-menu-avatar-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.user-menu-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-menu-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.user-menu-item:hover {
+  background: rgba(0, 130, 201, 0.12);
+  color: var(--color-primary-text);
+}
+
+.user-menu-item svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: var(--border-card);
+  margin: 6px 0;
+}
+
+/* ==========================================================================
+   Nextcloud Issue Reporter & Diagnostics Export Hub Modal
+   ========================================================================== */
+.issue-report-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 680px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.issue-report-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e252b;
+}
+
+.issue-report-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue-status-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.84rem;
+}
+
+.issue-status-banner.healthy {
+  background: rgba(70, 186, 97, 0.12);
+  border: 1px solid rgba(70, 186, 97, 0.3);
+  color: #46ba61;
+}
+
+.issue-status-banner.warning {
+  background: rgba(236, 167, 0, 0.12);
+  border: 1px solid rgba(236, 167, 0, 0.3);
+  color: #eca700;
+}
+
+.issue-preview-box {
+  background: #151a1e;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.issue-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #1e252b;
+  border-top: 1px solid var(--border-card);
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

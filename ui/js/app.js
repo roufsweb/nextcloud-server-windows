@@ -14,6 +14,8 @@ class AppController {
     this.initEventListeners();
     this.initCommandPalette();
     this.initDiagnostics();
+    this.initUserProfile();
+    this.initIssueReporter();
     this.initSplashScreen();
     this.refresh();
 
@@ -55,22 +57,26 @@ class AppController {
 
   switchToView(viewId) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.header-app-tab').forEach(n => n.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
 
     const navItem = document.querySelector(`.nav-item[data-view="${viewId}"]`);
     if (navItem) navItem.classList.add('active');
 
+    const headerTab = document.querySelector(`.header-app-tab[data-view="${viewId}"]`);
+    if (headerTab) headerTab.classList.add('active');
+
     const viewElem = document.getElementById(viewId);
     if (viewElem) viewElem.classList.add('active');
 
     const titleElem = document.getElementById('current-view-title');
-    if (titleElem && navItem) {
-      titleElem.textContent = navItem.querySelector('span')?.textContent || 'Dashboard';
+    if (titleElem && (navItem || headerTab)) {
+      titleElem.textContent = (navItem || headerTab).querySelector('span')?.textContent || 'Dashboard';
     }
   }
 
   initNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
+    document.querySelectorAll('.nav-item, .header-app-tab').forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = item.getAttribute('data-view');
@@ -78,10 +84,18 @@ class AppController {
       });
     });
 
+    const logo = document.getElementById('logo-jump-dashboard');
+    if (logo) {
+      logo.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.switchToView('view-dashboard');
+      });
+    }
+
     // Check if initial URL hash matches a view
     const initialHash = window.location.hash ? window.location.hash.replace('#', '') : null;
     if (initialHash) {
-      const targetNav = document.querySelector(`.nav-item[data-view="${initialHash}"]`);
+      const targetNav = document.querySelector(`[data-view="${initialHash}"]`);
       if (targetNav) {
         targetNav.click();
       }
@@ -107,6 +121,7 @@ class AppController {
       { id: 'db-optimize', title: 'Optimize Database (WAL Checkpoint & VACUUM)', subtitle: 'Checkpoint WAL journal and reclaim disk space', icon: 'database', action: () => { document.getElementById('btn-db-optimize')?.click(); } },
       { id: 'db-backup', title: 'Create Hot Database Snapshot', subtitle: 'Atomic point-in-time backup (VACUUM INTO)', icon: 'archive', action: () => { document.getElementById('btn-db-backup')?.click(); } },
       { id: 'doctor', title: 'Run Nextcloud Doctor (Diagnostics & Self-Healing)', subtitle: 'Inspect port conflicts, missing binaries, permissions & 1-click fixes', icon: 'activity', action: () => { this.openDiagnosticsModal(); } },
+      { id: 'report-issue', title: 'Report Issue / Export System Diagnostics', subtitle: 'Generate sanitized bug report, root cause audit & file on GitHub', icon: 'clipboard', action: () => { this.openIssueReportModal(); } },
       { id: 'copy-local', title: 'Copy Local Web Address', subtitle: 'Copy http://localhost:8080 to clipboard', icon: 'copy', action: () => { navigator.clipboard.writeText(`http://localhost:${this.state?.server_port || 8080}`); this.showToast('Copied local URL to clipboard!', 'success'); } },
       { id: 'copy-tunnel', title: 'Copy Public Cloudflare URL', subtitle: 'Copy public HTTPS domain to clipboard', icon: 'link', action: () => { navigator.clipboard.writeText(this.state?.tunnel_url || 'https://cloud.yourdomain.com'); this.showToast('Copied public HTTPS URL to clipboard!', 'success'); } }
     ];
@@ -584,6 +599,205 @@ class AppController {
 
   closeDiagnosticsModal() {
     const modal = document.getElementById('diagnostics-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  initUserProfile() {
+    const btnAvatar = document.getElementById('btn-user-avatar');
+    const menu = document.getElementById('user-profile-menu');
+    const itemWeb = document.getElementById('menu-item-open-web');
+    const itemDoctor = document.getElementById('menu-item-doctor');
+    const itemReport = document.getElementById('menu-item-report-bug');
+    const itemToggle = document.getElementById('menu-item-toggle-stack');
+
+    if (btnAvatar && menu) {
+      btnAvatar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('active');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && e.target !== btnAvatar) {
+          menu.classList.remove('active');
+        }
+      });
+    }
+
+    if (itemWeb) {
+      itemWeb.addEventListener('click', () => {
+        menu?.classList.remove('active');
+        const port = this.state?.server_port || 8080;
+        window.open(`http://localhost:${port}`, '_blank');
+      });
+    }
+
+    if (itemDoctor) {
+      itemDoctor.addEventListener('click', () => {
+        menu?.classList.remove('active');
+        this.openDiagnosticsModal();
+      });
+    }
+
+    if (itemReport) {
+      itemReport.addEventListener('click', () => {
+        menu?.classList.remove('active');
+        this.openIssueReportModal();
+      });
+    }
+
+    if (itemToggle) {
+      itemToggle.addEventListener('click', () => {
+        menu?.classList.remove('active');
+        document.getElementById('btn-toggle-server')?.click();
+      });
+    }
+  }
+
+  initIssueReporter() {
+    const modal = document.getElementById('issue-report-modal');
+    const btnSidebar = document.getElementById('btn-sidebar-report-issue');
+    const btnModalOpen = document.getElementById('btn-modal-open-report');
+    const btnDiagReport = document.getElementById('btn-diag-report-issue');
+    const btnClose = document.getElementById('btn-close-issue-modal');
+    const btnCopy = document.getElementById('btn-copy-issue-report');
+    const btnDownload = document.getElementById('btn-download-issue-report');
+
+    if (btnSidebar) btnSidebar.addEventListener('click', () => this.openIssueReportModal());
+    if (btnModalOpen) btnModalOpen.addEventListener('click', () => {
+      this.closeDiagnosticsModal();
+      this.openIssueReportModal();
+    });
+    if (btnDiagReport) btnDiagReport.addEventListener('click', () => this.openIssueReportModal());
+    if (btnClose) btnClose.addEventListener('click', () => this.closeIssueReportModal());
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) this.closeIssueReportModal();
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal?.classList.contains('open')) {
+        this.closeIssueReportModal();
+      }
+    });
+
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        const text = document.getElementById('issue-preview-text')?.textContent || '';
+        navigator.clipboard.writeText(text);
+        this.showToast('Copied diagnostic report to clipboard!', 'success');
+      });
+    }
+
+    if (btnDownload) {
+      btnDownload.addEventListener('click', () => {
+        const text = document.getElementById('issue-preview-text')?.textContent || '';
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nextcloud-windows-report-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('Downloaded diagnostic report file', 'info');
+      });
+    }
+  }
+
+  async openIssueReportModal() {
+    const modal = document.getElementById('issue-report-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+
+    const preview = document.getElementById('issue-preview-text');
+    const banner = document.getElementById('issue-status-banner');
+    const bannerText = document.getElementById('issue-status-text');
+
+    if (preview) preview.textContent = 'Gathering runtime diagnostics, service status and logs...';
+
+    try {
+      const [diag, dbStatus, logs] = await Promise.all([
+        this.api.getDiagnostics().catch(() => null),
+        this.api.getDatabaseStatus().catch(() => null),
+        this.api.getLogs().catch(() => [])
+      ]);
+
+      const isHealthy = !diag || diag.issues_count === 0;
+      if (banner && bannerText) {
+        if (isHealthy) {
+          banner.className = 'issue-status-banner healthy';
+          bannerText.textContent = 'Nextcloud Stack is Healthy • Zero Critical Issues Detected';
+        } else {
+          banner.className = 'issue-status-banner warning';
+          bannerText.textContent = `Nextcloud Doctor detected ${diag.issues_count} issue(s) • Actionable fixes available`;
+        }
+      }
+
+      // Build structured, sanitized markdown report
+      const timestamp = new Date().toISOString();
+      const port = this.state?.server_port || 8080;
+      const fastcgi = this.state?.fastcgi_port || 9000;
+      const isRunning = this.state?.running ?? true;
+      const drives = (this.state?.drives || []).map(d => d.path).join(', ') || 'None';
+
+      let reportMd = `### Nextcloud Server for Windows - Diagnostic Issue Report\n\n`;
+      reportMd += `**Generated**: ${timestamp}\n`;
+      reportMd += `**App Version**: v1.0.0 (Windows All-In-One Architecture)\n`;
+      reportMd += `**Operating System**: Windows x64 (Native Process Supervisor)\n`;
+      reportMd += `**Supervisor Stack Running**: ${isRunning}\n`;
+      reportMd += `**Web Server**: Caddy (Port: ${port})\n`;
+      reportMd += `**PHP Engine**: PHP 8.3 NTS FastCGI (127.0.0.1:${fastcgi})\n`;
+      reportMd += `**Data Root**: \`${this.state?.data_dir || 'C:\\NextcloudAIO\\data'}\`\n`;
+      reportMd += `**Database Engine**: ${dbStatus?.engine || 'libSQL / SQLite WAL'} (Integrity: ${dbStatus?.integrity || 'ok'}, Size: ${(dbStatus?.file_size_bytes / 1024 / 1024 || 0).toFixed(2)} MB)\n`;
+      reportMd += `**External Storage Drives**: ${drives}\n`;
+      reportMd += `**Cloudflare Remote Access**: ${this.state?.tunnel_status || 'Offline'}\n\n`;
+
+      reportMd += `#### Subsystem Diagnostic Checks:\n`;
+      if (diag && diag.items) {
+        diag.items.forEach(item => {
+          const icon = item.status === 'ok' ? '[✓ OK]' : item.status === 'warning' ? '[! WARN]' : '[X ERROR]';
+          reportMd += `- ${icon} **${item.name}**: ${item.what}\n`;
+          if (item.status !== 'ok') {
+            reportMd += `  - *Why*: ${item.why}\n`;
+            reportMd += `  - *Fix*: ${item.fix}\n`;
+          }
+        });
+      } else {
+        reportMd += `- Diagnostic check data unavailable.\n`;
+      }
+
+      reportMd += `\n#### Recent Supervisor Logs (Sanitized):\n\`\`\`\n`;
+      const recentLogs = (logs || []).slice(-15);
+      if (recentLogs.length > 0) {
+        recentLogs.forEach(l => {
+          reportMd += `[${l.time}] [${l.tag}] ${l.message}\n`;
+        });
+      } else {
+        reportMd += `No recent supervisor log entries.\n`;
+      }
+      reportMd += `\`\`\`\n`;
+
+      if (preview) {
+        preview.textContent = reportMd;
+      }
+
+      // Update GitHub Issue Link
+      const btnGh = document.getElementById('btn-open-github-issue');
+      if (btnGh) {
+        const issueTitle = !isHealthy && diag?.items?.find(i => i.status !== 'ok')
+          ? `[Bug] ${diag.items.find(i => i.status !== 'ok').name} issue`
+          : `[Issue Report] Nextcloud Server for Windows`;
+        const ghUrl = `https://github.com/roufsweb/nextcloud-server-windows/issues/new?title=${encodeURIComponent(issueTitle)}&body=${encodeURIComponent(reportMd)}`;
+        btnGh.href = ghUrl;
+      }
+    } catch (err) {
+      if (preview) preview.textContent = `Failed to generate diagnostic report: ${err.message}`;
+    }
+  }
+
+  closeIssueReportModal() {
+    const modal = document.getElementById('issue-report-modal');
     if (modal) modal.classList.remove('open');
   }
 
@@ -1158,6 +1372,27 @@ class AppController {
         });
       }
     }
+
+    // Update sidebar quota widget
+    const sidebarPct = document.getElementById('sidebar-quota-pct');
+    const sidebarFill = document.getElementById('sidebar-quota-fill');
+    const sidebarText = document.getElementById('sidebar-quota-text');
+    if (sidebarPct && sidebarFill && sidebarText) {
+      const totalGB = Math.max(1, this.state?.total_disk_gb || 475);
+      const usedGB = Math.max(0, this.state?.used_disk_gb || 0);
+      const pctUsed = Math.min(100, Math.max(0, Math.round((usedGB / totalGB) * 100)));
+      sidebarPct.textContent = `${pctUsed}%`;
+      sidebarFill.style.width = `${pctUsed}%`;
+      sidebarText.textContent = `${usedGB} GB of ${totalGB} GB used`;
+    }
+
+    // Update user menu details
+    const menuName = document.getElementById('menu-user-name');
+    const menuSub = document.getElementById('menu-user-sub');
+    const menuToggle = document.getElementById('lbl-menu-toggle');
+    if (menuName) menuName.textContent = this.state?.admin_username || 'admin';
+    if (menuSub) menuSub.textContent = `Administrator • localhost:${this.state?.server_port || 8080}`;
+    if (menuToggle) menuToggle.textContent = this.state?.running ? 'Stop Server Stack' : 'Start Server Stack';
 
     // Refresh live health and self-healing diagnostics
     await this.refreshDiagnostics();

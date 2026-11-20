@@ -1,40 +1,61 @@
 :root {
-  /* Zinc 950 & Sky Palette */
-  --bg-primary: #09090B;
-  --bg-surface: #0C0C0F;
-  --bg-card: #121216;
-  --bg-card-hover: #16161C;
-  --bg-input: #09090B;
-  --bg-nav-active: #18181F;
+  /* ==========================================================================
+     Nextcloud Official Design System Tokens & Color Palette
+     Unified across Nextcloud Web, Nextcloud Desktop Client, and Server Dashboard
+     ========================================================================== */
+  --color-primary: #0082c9;
+  --color-primary-hover: #006aa3;
+  --color-primary-active: #005987;
+  --color-primary-text: #ffffff;
+  --color-primary-element: #0082c9;
+  --color-primary-element-light: rgba(0, 130, 201, 0.12);
 
-  --border-card: #222228;
-  --border-color: #222228;
-  --border-input: #27272A;
-  --border-focus: #38BDF8;
+  /* Nextcloud Modern Dark Theme (Surface, Drawer & Elevation) */
+  --bg-primary: #181d20;
+  --bg-surface: #1e252b;
+  --bg-card: #22292f;
+  --bg-card-hover: #29323a;
+  --bg-input: #191f24;
+  --bg-nav-active: rgba(0, 130, 201, 0.18);
+  --bg-app: #181d20;
 
-  --bg-app: #0C0C0F;
+  --border-card: #2d3740;
+  --border-color: #2d3740;
+  --border-input: #37434e;
+  --border-focus: #0082c9;
 
-  --text-primary: #F4F4F5;
-  --text-secondary: #A1A1AA;
-  --text-muted: #71717A;
+  /* Header Bar Signature Nextcloud Blue */
+  --header-bg: linear-gradient(90deg, #0082c9 0%, #0074b4 100%);
+  --header-border: rgba(0, 0, 0, 0.15);
+  --header-text: #ffffff;
 
-  --accent-sky: #0EA5E9;
-  --accent-sky-hover: #38BDF8;
-  --accent-glow: rgba(14, 165, 233, 0.12);
-  --accent-emerald: #10B981;
-  --accent-amber: #F59E0B;
+  /* Typography Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a6b2be;
+  --text-muted: #72818f;
 
-  --status-running: #10B981;
-  --status-warning: #F59E0B;
-  --status-stopped: #EF4444;
+  /* Accent & Feedback Colors */
+  --accent-sky: #0082c9;
+  --accent-sky-hover: #00a4ff;
+  --accent-glow: rgba(0, 130, 201, 0.25);
+  --accent-emerald: #46ba61; /* Nextcloud Green */
+  --accent-amber: #eca700;   /* Nextcloud Warning */
+  --accent-red: #e9322d;     /* Nextcloud Danger */
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --status-running: #46ba61;
+  --status-warning: #eca700;
+  --status-stopped: #e9322d;
+
+  /* System Fonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --sidebar-width: 230px;
-  --header-height: 56px;
+  /* Ergonomics */
+  --sidebar-width: 240px;
+  --header-height: 52px;
   --radius-sm: 6px;
-  --radius-md: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 }
 
 * {
@@ -50,6 +71,7 @@ body {
   line-height: 1.5;
   height: 100vh;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
@@ -58,61 +80,228 @@ body {
 /* App Shell Layout */
 .app-layout {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }
 
-/* Sidebar Navigation */
-.sidebar {
-  width: var(--sidebar-width);
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-card);
+/* ==========================================================================
+   Nextcloud Top App Bar (Signature Blue Header)
+   ========================================================================== */
+.top-bar {
+  height: var(--header-height);
+  padding: 0 16px;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
   display: flex;
-  flex-direction: column;
-  padding: 16px 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.brand {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nc-brand-logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 6px 18px 6px;
-  border-bottom: 1px solid var(--border-card);
-  margin-bottom: 16px;
+  text-decoration: none;
+  color: #ffffff;
 }
 
-.brand-icon {
-  width: 30px;
-  height: 30px;
+.nc-logo-svg {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.nc-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.nc-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+}
+
+.nc-subtitle {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* Center App Switcher Tabs (Nextcloud Header Apps) */
+.header-apps-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-app-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.header-app-tab svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.header-app-tab:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.header-app-tab.active {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.header-app-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header Buttons */
+.btn-header-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-header-ghost:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.btn-header-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #ffffff;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.btn-header-primary:hover {
+  background: #f0f7fb;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* User Avatar & Dropdown */
+.user-avatar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.brand-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.brand-title {
-  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: -0.2px;
-  color: var(--text-primary);
+  font-size: 0.85rem;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  margin-left: 4px;
 }
 
-.brand-subtitle {
-  font-size: 0.72rem;
+.user-avatar-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================================
+   Main Shell Layout (Sidebar Drawer + Content View)
+   ========================================================================== */
+.main-shell {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Navigation Sidebar (Nextcloud App Navigation Drawer) */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-card);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  flex-shrink: 0;
+}
+
+.sidebar-heading {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
   color: var(--text-muted);
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-weight: 700;
+  padding: 4px 10px 8px 10px;
 }
 
 .nav-menu {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   flex: 1;
 }
 
@@ -124,25 +313,26 @@ body {
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 
 .nav-item.active {
   background: var(--bg-nav-active);
-  color: var(--text-primary);
+  color: var(--color-primary-text);
+  font-weight: 600;
 }
 
 .nav-item.active svg {
-  color: var(--accent-sky-hover);
-  stroke: var(--accent-sky-hover);
+  color: var(--color-primary);
+  stroke: var(--color-primary);
 }
 
 .nav-item svg {
@@ -152,16 +342,94 @@ body {
   stroke-width: 2;
   fill: none;
   transition: stroke 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+/* Sidebar Quota Bar & Bottom Section */
+.sidebar-bottom {
+  padding-top: 14px;
+  border-top: 1px solid var(--border-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-quota-widget {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quota-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+}
+
+.quota-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.quota-metric {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.quota-bar-track {
+  width: 100%;
+  height: 5px;
+  background: #181d20;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quota-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.quota-subtext {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.sidebar-report-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  background: rgba(0, 130, 201, 0.1);
+  border: 1px solid rgba(0, 130, 201, 0.25);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-text);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-report-btn:hover {
+  background: rgba(0, 130, 201, 0.2);
+  border-color: var(--color-primary);
 }
 
 .sidebar-footer {
-  padding-top: 14px;
-  border-top: 1px solid var(--border-card);
-  font-size: 0.73rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  text-align: center;
 }
 
 /* Main Content Area */
@@ -170,24 +438,17 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-surface);
+  background: var(--bg-primary);
 }
 
-/* Top App Bar */
-.top-bar {
-  height: var(--header-height);
-  padding: 0 24px;
+/* Secondary Subheader Bar inside Content */
+.content-header {
+  padding: 14px 24px;
   border-bottom: 1px solid var(--border-card);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-primary);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  background: var(--bg-surface);
 }
 
 .view-title {
@@ -201,12 +462,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 500;
   font-family: var(--font-mono);
   color: var(--text-secondary);
-  padding: 2px 8px;
-  background: #141418;
+  padding: 3px 8px;
+  background: #14171a;
   border-radius: 4px;
   border: 1px solid var(--border-card);
 }
@@ -215,12 +476,6 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-}
-
-.top-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 /* Primary Action Buttons */
@@ -248,12 +503,12 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent-sky);
+  background: var(--color-primary);
   color: #FFFFFF;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-sky-hover);
+  background: var(--color-primary-hover);
 }
 
 .btn-success {
@@ -266,26 +521,26 @@ body {
 }
 
 .btn-secondary {
-  background: #16161B;
+  background: #28323a;
   color: var(--text-primary);
   border-color: var(--border-input);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #1E1E26;
-  border-color: #3F3F46;
+  background: #323e48;
+  border-color: #43525f;
 }
 
 .btn-destructive-outline {
-  background: #141418;
-  color: var(--text-secondary);
-  border-color: var(--border-input);
+  background: rgba(233, 50, 45, 0.08);
+  color: #ff6b67;
+  border-color: rgba(233, 50, 45, 0.35);
 }
 
 .btn-destructive-outline:hover:not(:disabled) {
-  color: var(--status-stopped);
+  color: #ffffff;
   border-color: var(--status-stopped);
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--status-stopped);
 }
 
 .btn-sm {
@@ -303,57 +558,4 @@ body {
 
 .tab-content.active {
   display: block;
-}
-
-/* Monospace Links */
-.mono-link {
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  color: var(--accent-sky-hover);
-  text-decoration: none;
-  word-break: break-all;
-}
-
-.mono-link:hover {
-  text-decoration: underline;
-}
-
-.endpoint-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-copy-icon {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 2px 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
-}
-
-.btn-copy-icon:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* Scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #27272A;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3F3F46;
 }

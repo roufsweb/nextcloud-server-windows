@@ -9,485 +9,575 @@
 </head>
 <body>
   <div class="app-layout">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none">
-            <defs>
-              <linearGradient id="brandCloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#38BDF8" />
-                <stop offset="100%" stop-color="#0EA5E9" />
-              </linearGradient>
-            </defs>
-            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="url(#brandCloudGrad)"/>
+    <!-- Signature Nextcloud Blue Header Bar -->
+    <header class="top-bar">
+      <!-- Left: Official Nextcloud 3-Ring Logo & Title -->
+      <div class="header-left">
+        <a href="#" class="nc-brand-logo" id="logo-jump-dashboard">
+          <svg class="nc-logo-svg" viewBox="0 0 160 80" fill="#ffffff">
+            <path d="M46.7,21.8 C41.6,18.2 35.1,16 28,16 C12.5,16 0,28.5 0,44 C0,59.5 12.5,72 28,72 C35.1,72 41.6,69.8 46.7,66.2 C55.3,74.7 67,80 80,80 C93,80 104.7,74.7 113.3,66.2 C118.4,69.8 124.9,72 132,72 C147.5,72 160,59.5 160,44 C160,28.5 147.5,16 132,16 C124.9,16 118.4,18.2 113.3,21.8 C104.7,13.3 93,8 80,8 C67,8 55.3,13.3 46.7,21.8 Z M28,26 C37.9,26 46,34.1 46,44 C46,53.9 37.9,62 28,62 C18.1,62 10,53.9 10,44 C10,34.1 18.1,26 28,26 Z M80,18 C94.4,18 106,29.6 106,44 C106,58.4 94.4,70 80,70 C65.6,70 54,58.4 54,44 C54,29.6 65.6,18 80,18 Z M132,26 C141.9,26 150,34.1 150,44 C150,53.9 141.9,62 132,62 C122.1,62 114,53.9 114,44 C114,34.1 122.1,26 132,26 Z" fill-rule="evenodd"/>
           </svg>
-        </div>
+          <div class="nc-brand-text">
+            <span class="nc-title">Nextcloud</span>
+            <span class="nc-subtitle">Windows Server AIO</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Center: Nextcloud Web App Switcher Tabs -->
+      <nav class="header-apps-nav" aria-label="Nextcloud Apps Navigation">
+        <a href="#" class="header-app-tab active" data-view="view-dashboard" title="Server Dashboard & Overview">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="header-app-tab" data-view="view-storage" title="Storage & External Drives">
+          <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span>Storage & Drives</span>
+        </a>
+        <a href="#" class="header-app-tab" data-view="view-config" title="Networking & Configuration">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Config</span>
+        </a>
+        <a href="#" class="header-app-tab" data-view="view-logs" title="Live Supervisor Logs">
+          <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>Logs</span>
+        </a>
+      </nav>
+
+      <!-- Right Header Actions -->
+      <div class="top-actions">
+        <!-- Open Nextcloud Web Instance Link -->
+        <a href="http://localhost:8080" target="_blank" class="btn-header-primary" id="btn-open-nextcloud" title="Open Nextcloud Web Instance in Browser">
+          <span>Open Nextcloud</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+
+        <!-- System Diagnostics & Self-Healing Doctor -->
+        <button class="btn-header-ghost" id="btn-open-diagnostics" title="System Health & Guided Self-Healing">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          <span>Doctor</span>
+          <span class="diag-badge-pill" id="header-diag-badge" style="display:none;">0</span>
+        </button>
+
+        <!-- Command Palette Shortcut Button -->
+        <button class="btn-header-ghost" id="btn-open-palette" title="Quick Actions & Commands (Ctrl+K)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <kbd class="kbd-shortcut" style="background:rgba(0,0,0,0.25); color:#fff; border-color:rgba(255,255,255,0.2);">Ctrl+K</kbd>
+        </button>
+
+        <!-- Server Toggle Control -->
+        <button class="btn-header-ghost" id="btn-toggle-server" title="Start or Stop Nextcloud Server Stack">
+          <svg id="icon-toggle-server" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12"></rect>
+          </svg>
+          <span id="lbl-toggle-server">Stop</span>
+        </button>
+
+        <!-- Hidden fallback buttons for IPC triggers -->
+        <button id="btn-start-services" style="display:none;"></button>
+        <button id="btn-stop-services" style="display:none;"></button>
+
+        <!-- User Profile Avatar Button -->
+        <button class="user-avatar-btn" id="btn-user-avatar" title="Signed in as admin (Click for menu)">
+          A
+        </button>
+      </div>
+    </header>
+
+    <!-- Nextcloud Floating User Profile Menu -->
+    <div class="user-dropdown-menu" id="user-profile-menu">
+      <div class="user-menu-header">
+        <div class="user-menu-avatar-badge">A</div>
         <div>
-          <div class="brand-title">Nextcloud AIO</div>
-          <div class="brand-subtitle">Windows Server Edition</div>
+          <div class="user-menu-name" id="menu-user-name">admin</div>
+          <div class="user-menu-sub" id="menu-user-sub">Administrator • localhost:8080</div>
         </div>
       </div>
+      <button class="user-menu-item" id="menu-item-open-web">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        <span>Open Nextcloud Web</span>
+      </button>
+      <button class="user-menu-item" id="menu-item-doctor">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        <span>Nextcloud System Doctor</span>
+      </button>
+      <button class="user-menu-item" id="menu-item-report-bug">
+        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"></path><path d="M4 14h16"></path><path d="M4 18h16"></path><path d="M12 19v3"></path></svg>
+        <span>Report Issue / Export Diagnostics</span>
+      </button>
+      <div class="user-menu-divider"></div>
+      <a href="https://github.com/roufsweb/nextcloud-server-windows" target="_blank" class="user-menu-item">
+        <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        <span>GitHub Repository & Docs</span>
+      </a>
+      <div class="user-menu-divider"></div>
+      <button class="user-menu-item" id="menu-item-toggle-stack" style="color:#ff6b67;">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"></rect></svg>
+        <span id="lbl-menu-toggle">Stop Server Services</span>
+      </button>
+    </div>
 
-      <ul class="nav-menu">
-        <li>
-          <a href="#" class="nav-item active" data-view="view-dashboard">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            <span>Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-item" data-view="view-storage">
-            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            <span>Storage & Drives</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-item" data-view="view-config">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            <span>Config</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-item" data-view="view-logs">
-            <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-            <span>In-App Logs</span>
-          </a>
-        </li>
-      </ul>
+    <!-- Main Shell (Drawer + Active View) -->
+    <div class="main-shell">
+      <!-- Left Sidebar Navigation Drawer -->
+      <aside class="sidebar">
+        <div class="sidebar-heading">Personal Cloud</div>
+        <ul class="nav-menu">
+          <li>
+            <a href="#" class="nav-item active" data-view="view-dashboard">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-view="view-storage">
+              <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span>Storage & Drives</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-view="view-config">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <span>Server Config</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-view="view-logs">
+              <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              <span>Supervisor Logs</span>
+            </a>
+          </li>
+        </ul>
 
-      <div class="sidebar-footer">
-        <span>v1.0.0 • by roufsweb</span>
-      </div>
-    </aside>
+        <!-- Sidebar Bottom Storage Quota & Issue Button -->
+        <div class="sidebar-bottom">
+          <!-- Nextcloud Storage Quota Bar -->
+          <div class="sidebar-quota-widget">
+            <div class="quota-header">
+              <span class="quota-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"></path></svg>
+                Storage
+              </span>
+              <span class="quota-metric" id="sidebar-quota-pct">0%</span>
+            </div>
+            <div class="quota-bar-track">
+              <div class="quota-bar-fill" id="sidebar-quota-fill" style="width: 0%;"></div>
+            </div>
+            <div class="quota-subtext" id="sidebar-quota-text">Loading storage...</div>
+          </div>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-      <!-- Top App Bar -->
-      <header class="top-bar">
-        <div class="header-left">
+          <!-- Report Issue & Diagnostics Button -->
+          <button type="button" class="sidebar-report-btn" id="btn-sidebar-report-issue" title="Report a bug, copy issue diagnostics, or file on GitHub">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"></path><path d="M4 14h16"></path><path d="M4 18h16"></path><path d="M12 19v3"></path></svg>
+            <span>Report Issue & Logs</span>
+          </button>
+
+          <div class="sidebar-footer">
+            v1.0.0 • by roufsweb
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Content Subheader Bar -->
+        <div class="content-header">
           <h1 class="view-title" id="current-view-title">Dashboard</h1>
           <span id="header-status-indicator" class="header-status">
             <span class="status-dot dot-running" id="header-status-dot"></span>
-            <span id="header-status-text">Running</span>
+            <span id="header-status-text">Stack Active</span>
           </span>
         </div>
-        <div class="top-actions">
-          <!-- System Diagnostics & Self-Healing Doctor -->
-          <button class="btn btn-secondary btn-sm" id="btn-open-diagnostics" title="Inspect system health, diagnose issues, and view automated fixes">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-            <span>Doctor</span>
-            <span class="diag-badge-pill" id="header-diag-badge" style="display:none;">0</span>
-          </button>
 
-          <!-- Command Palette Shortcut Button -->
-          <button class="btn btn-secondary btn-sm" id="btn-open-palette" title="Quick Actions & Commands (Ctrl+K)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span>Quick Actions</span>
-            <kbd class="kbd-shortcut">Ctrl+K</kbd>
-          </button>
-
-          <!-- State-aware Server Toggle Control -->
-          <button class="btn btn-destructive-outline" id="btn-toggle-server">
-            <svg id="icon-toggle-server" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="6" width="12" height="12"></rect>
-            </svg>
-            <span id="lbl-toggle-server">Stop Server</span>
-          </button>
-          
-          <!-- Hidden fallback buttons to retain full backwards compatibility with any existing IPC triggers -->
-          <button id="btn-start-services" style="display:none;"></button>
-          <button id="btn-stop-services" style="display:none;"></button>
-
-          <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="btn-open-nextcloud">
-            Open Nextcloud ↗
-          </a>
-        </div>
-      </header>
-
-      <!-- View: Dashboard -->
-      <section class="tab-content active" id="view-dashboard">
-        <!-- Modern Hero Status Control Card -->
-        <div class="hero-card">
-          <div class="hero-main">
-            <div class="hero-status-pill">
-              <span class="status-dot dot-running" id="hero-dot"></span>
-              <span id="hero-status-tag">Nextcloud Stack Active</span>
-            </div>
-            <h2 class="hero-title" id="hero-headline">Nextcloud is Live & Healthy</h2>
-            <p class="hero-desc" id="hero-desc">Your personal cloud is running on this Windows PC. File sync, desktop collaboration, and media streaming are operational.</p>
-            <div class="hero-actions">
-              <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="hero-btn-open">
-                Open Nextcloud Web ↗
-              </a>
-              <button type="button" class="btn btn-secondary" id="hero-btn-open-folder" title="Open Nextcloud data folder in Windows File Explorer">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                Open Data Folder
-              </button>
-              <button type="button" class="btn btn-secondary" id="hero-btn-backup" title="Create hot point-in-time database snapshot">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Instant Snapshot
-              </button>
-            </div>
-          </div>
-          <div class="hero-meta-panel">
-            <div class="hero-meta-item">
-              <span class="hero-meta-label">Local Access:</span>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <a href="http://localhost:8080" target="_blank" class="mono-link" id="hero-local-url">http://localhost:8080</a>
-                <button type="button" class="btn-copy-icon" id="hero-btn-copy-local" data-copy="http://localhost:8080" title="Copy local URL">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <!-- View: Dashboard -->
+        <section class="tab-content active" id="view-dashboard">
+          <!-- Nextcloud Hero Status Card -->
+          <div class="hero-card">
+            <div class="hero-main">
+              <div class="hero-status-pill">
+                <span class="status-dot dot-running" id="hero-dot"></span>
+                <span id="hero-status-tag">Nextcloud Stack Active</span>
+              </div>
+              <h2 class="hero-title" id="hero-headline">Nextcloud is Live & Healthy</h2>
+              <p class="hero-desc" id="hero-desc">Your personal cloud is running on this Windows PC. File sync, desktop collaboration, and media streaming are operational.</p>
+              <div class="hero-actions">
+                <a href="http://localhost:8080" target="_blank" class="btn btn-primary" id="hero-btn-open">
+                  Open Nextcloud Web ↗
+                </a>
+                <button type="button" class="btn btn-secondary" id="hero-btn-open-folder" title="Open Nextcloud data folder in Windows File Explorer">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  Open Data Folder
+                </button>
+                <button type="button" class="btn btn-secondary" id="hero-btn-backup" title="Create hot point-in-time database snapshot">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Instant Snapshot
                 </button>
               </div>
             </div>
-            <div class="hero-meta-item">
-              <span class="hero-meta-label">Remote Access:</span>
-              <span id="hero-tunnel-status" class="hero-meta-val">Local Only</span>
-            </div>
-            <div class="hero-meta-item">
-              <span class="hero-meta-label">Memory Footprint:</span>
-              <span class="hero-meta-val text-emerald">&lt; 110 MB (Zero-Daemon)</span>
+            <div class="hero-meta-panel">
+              <div class="hero-meta-item">
+                <span class="hero-meta-label">Local Access:</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <a href="http://localhost:8080" target="_blank" class="mono-link" id="hero-local-url">http://localhost:8080</a>
+                  <button type="button" class="btn-copy-icon" id="hero-btn-copy-local" data-copy="http://localhost:8080" title="Copy local URL">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="hero-meta-item">
+                <span class="hero-meta-label">Remote Access:</span>
+                <span id="hero-tunnel-status" class="hero-meta-val">Local Only</span>
+              </div>
+              <div class="hero-meta-item">
+                <span class="hero-meta-label">Memory Footprint:</span>
+                <span class="hero-meta-val text-emerald">&lt; 110 MB (Zero-Daemon)</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Intelligent Actionable Diagnostic Alert Card (Auto-surfaces issues with What/Why/Fix) -->
-        <div class="diagnostic-card" id="dash-diagnostic-card" style="display:none;">
-          <div class="diagnostic-card-header">
-            <div class="diag-title-area">
-              <div class="diag-icon-badge" id="dash-diag-icon">⚠️</div>
+          <!-- Intelligent Actionable Diagnostic Alert Card (Auto-surfaces issues with What/Why/Fix) -->
+          <div class="diagnostic-card" id="dash-diagnostic-card" style="display:none;">
+            <div class="diagnostic-card-header">
+              <div class="diag-title-area">
+                <div class="diag-icon-badge" id="dash-diag-icon">⚠️</div>
+                <div>
+                  <div class="diag-headline" id="dash-diag-headline">Attention Required</div>
+                  <div class="diag-subheadline" id="dash-diag-subheadline">Nextcloud Doctor detected an issue with your setup.</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-view-all-diag">
+                  System Doctor
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-diag-report-issue">
+                  Report Issue
+                </button>
+              </div>
+            </div>
+            <div class="diagnostic-card-body" id="dash-diag-body">
+              <!-- Dynamically populated with What happened, Why it might have happened, How to fix it -->
+            </div>
+          </div>
+
+          <!-- Balanced 2x2 Service Status Grid -->
+          <div class="grid-2x2">
+            <!-- Nextcloud Core -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Nextcloud Core</div>
+                <span class="service-status">
+                  <span class="status-dot dot-running" id="dot-dash-core"></span>
+                  <span id="lbl-dash-core">Running</span>
+                </span>
+              </div>
+              <div class="card-body-text">
+                <p>Version: <strong>30.0.2</strong></p>
+                <div class="endpoint-row">
+                  <span>Address:</span>
+                  <a href="http://localhost:8080" target="_blank" class="mono-link" id="link-core-endpoint">http://localhost:8080</a>
+                  <button type="button" class="btn-copy-icon" data-copy="http://localhost:8080" title="Copy URL">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Web Server Caddy -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Caddy Web Server</div>
+                <span class="service-status">
+                  <span class="status-dot dot-running" id="dot-dash-caddy"></span>
+                  <span id="lbl-dash-caddy">Active</span>
+                </span>
+              </div>
+              <div class="card-body-text">
+                <p>Protocol: <strong>HTTP/2 & HTTP/3 (QUIC)</strong></p>
+                <p>Port: <strong id="lbl-caddy-port">8080 (Proxy to FastCGI)</strong></p>
+              </div>
+            </div>
+
+            <!-- PHP Runtime -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">PHP 8.3 NTS FastCGI</div>
+                <span class="service-status">
+                  <span class="status-dot dot-running" id="dot-dash-php"></span>
+                  <span id="lbl-dash-php">127.0.0.1:9000</span>
+                </span>
+              </div>
+              <div class="card-body-text">
+                <p>Engine: <strong>Zend Engine v4.3 + JIT</strong></p>
+                <p>Memory Cache: <strong>APCu + Redis Locking</strong></p>
+              </div>
+            </div>
+
+            <!-- Cloudflare Tunnel / Remote Access -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Remote Access (Cloudflare)</div>
+                <span class="service-status">
+                  <span class="status-dot dot-stopped" id="dot-dash-tunnel"></span>
+                  <span id="lbl-dash-tunnel-status">Not Configured</span>
+                </span>
+              </div>
+              <div class="card-body-text" id="dash-tunnel-body">
+                <p id="lbl-dash-tunnel-desc">Encrypted access from outside your home network.</p>
+                <div class="endpoint-row" id="row-dash-tunnel-endpoint" style="display:none;">
+                  <span>External:</span>
+                  <a href="#" id="lbl-tunnel-url" target="_blank" class="mono-link"></a>
+                  <button type="button" class="btn-copy-icon" id="btn-copy-tunnel" data-copy="" title="Copy Public URL">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-jump-tunnel" style="margin-top:6px; display:inline-flex;">
+                  Set Up Remote Access →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- In-Dashboard Storage Gauge Container -->
+          <div id="storage-gauge-root"></div>
+        </section>
+
+        <!-- View: Storage & External Drives -->
+        <section class="tab-content" id="view-storage">
+          <!-- Nextcloud Data Root Directory Card -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Nextcloud Data Root Directory
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-dataroot" title="Open data root directly in Windows Explorer">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  Open in Explorer
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Change Folder</button>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
               <div>
-                <div class="diag-headline" id="dash-diag-headline">Attention Required</div>
-                <div class="diag-subheadline" id="dash-diag-subheadline">Nextcloud Doctor detected an issue with your setup.</div>
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-view-all-diag">
-              Full Diagnostics Report
-            </button>
-          </div>
-          <div class="diagnostic-card-body" id="dash-diag-body">
-            <!-- Dynamically populated with What happened, Why it might have happened, How to fix it -->
-          </div>
-        </div>
-
-        <!-- Balanced 2x2 Service Status Grid -->
-        <div class="grid-2x2">
-          <!-- Nextcloud Core -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Nextcloud Core</div>
-              <span class="service-status">
-                <span class="status-dot dot-running" id="dot-dash-core"></span>
-                <span id="lbl-dash-core">Running</span>
-              </span>
-            </div>
-            <div class="card-body-text">
-              <p>Version: <strong>30.0.2</strong></p>
-              <div class="endpoint-row">
-                <span>Address:</span>
-                <a href="http://localhost:8080" target="_blank" class="mono-link" id="link-core-endpoint">http://localhost:8080</a>
-                <button type="button" class="btn-copy-icon" data-copy="http://localhost:8080" title="Copy URL">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
+                <p style="font-size:0.82rem; color:var(--text-secondary);">All internal cloud user files and database stores reside here:</p>
+                <code id="lbl-data-dir" class="mono-link" style="font-size:0.85rem; display:block; margin-top:4px;">C:\NextcloudAIO\data</code>
               </div>
             </div>
           </div>
 
-          <!-- Web Server Caddy -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Caddy Web Server</div>
-              <span class="service-status">
-                <span class="status-dot dot-running" id="dot-dash-caddy"></span>
-                <span id="lbl-dash-caddy">Active</span>
-              </span>
-            </div>
-            <div class="card-body-text">
-              <p>Protocol: <strong>HTTP/2 & HTTP/3 (QUIC)</strong></p>
-              <p>Port: <strong id="lbl-caddy-port">8080 (Proxy to FastCGI)</strong></p>
-            </div>
-          </div>
-
-          <!-- PHP Runtime -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">PHP 8.3 NTS FastCGI</div>
-              <span class="service-status">
-                <span class="status-dot dot-running" id="dot-dash-php"></span>
-                <span id="lbl-dash-php">127.0.0.1:9000</span>
-              </span>
-            </div>
-            <div class="card-body-text">
-              <p>Engine: <strong>Zend Engine v4.3 + JIT</strong></p>
-              <p>Memory Cache: <strong>APCu + Redis Locking</strong></p>
-            </div>
-          </div>
-
-          <!-- Cloudflare Tunnel / Remote Access -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Remote Access (Cloudflare)</div>
-              <span class="service-status">
-                <span class="status-dot dot-stopped" id="dot-dash-tunnel"></span>
-                <span id="lbl-dash-tunnel-status">Not Configured</span>
-              </span>
-            </div>
-            <div class="card-body-text" id="dash-tunnel-body">
-              <p id="lbl-dash-tunnel-desc">Encrypted access from outside your home network.</p>
-              <div class="endpoint-row" id="row-dash-tunnel-endpoint" style="display:none;">
-                <span>External:</span>
-                <a href="#" id="lbl-tunnel-url" target="_blank" class="mono-link"></a>
-                <button type="button" class="btn-copy-icon" id="btn-copy-tunnel" data-copy="" title="Copy Public URL">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-              </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-jump-tunnel" style="margin-top:6px; display:inline-flex;">
-                Set Up Remote Access →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- In-Dashboard Storage Gauge Container -->
-        <div id="storage-gauge-root"></div>
-      </section>
-
-      <!-- View: Storage & External Drives -->
-      <section class="tab-content" id="view-storage">
-        <!-- Nextcloud Data Root Directory Card -->
-        <div class="card" style="margin-bottom: 16px;">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              Nextcloud Data Root Directory
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-open-dataroot" title="Open data root directly in Windows Explorer">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                Open in Explorer
-              </button>
-              <button class="btn btn-secondary btn-sm" id="btn-change-dataroot">Change Folder</button>
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div>
-              <p style="font-size:0.82rem; color:var(--text-secondary);">All internal cloud user files and database stores reside here:</p>
-              <code id="lbl-data-dir" class="mono-link" style="font-size:0.85rem; display:block; margin-top:4px;">C:\NextcloudAIO\data</code>
-            </div>
-          </div>
-        </div>
-
-        <!-- Add Drive On Demand Card -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-              Add Drive on Demand (External Storage)
-            </div>
-          </div>
-          <form id="form-add-drive">
-            <div style="display:grid; grid-template-columns: 2fr 1.5fr auto; gap:10px; align-items:flex-end;">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="input-drive-path">Drive Letter / Directory Path</label>
-                <div class="input-with-button">
-                  <input type="text" class="form-input form-input-mono" id="input-drive-path" placeholder="e.g. D:\ or E:\MyStorage" required>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-browse-drive">Browse...</button>
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="input-drive-name">Display Name in Nextcloud</label>
-                <input type="text" class="form-input" id="input-drive-name" placeholder="e.g. Media Drive">
-              </div>
-              <button type="submit" class="btn btn-primary" style="height:35px;">
-                Mount Drive
-              </button>
-            </div>
-          </form>
-
-          <!-- Auto-Detected System Drives Quick-Mount Bar -->
-          <div style="margin-top: 14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.76rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Detected Windows Drives (1-Click Mount)</span>
-              <span id="lbl-detected-drives-count" style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);"></span>
-            </div>
-            <div class="detected-drives-bar" id="detected-drives-container">
-              <!-- Populated dynamically with available drive chips -->
-            </div>
-          </div>
-
-          <h3 style="font-size:0.85rem; margin-top:14px; margin-bottom:10px; font-weight:600; color:var(--text-primary);">Active Connected Drives</h3>
-          <div class="drive-list" id="drive-list-container">
-            <!-- Driven dynamically populated by app.js -->
-          </div>
-        </div>
-      </section>
-
-      <!-- View: Config (Unified Settings & Networking) -->
-      <section class="tab-content" id="view-config">
-        <!-- Cloudflare Tunnel Configuration -->
-        <div class="card" style="margin-bottom: 16px;">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-              Cloudflare Tunnel (Encrypted Remote Access)
-            </div>
-            <span class="service-status">
-              <span class="status-dot dot-stopped" id="dot-cfg-tunnel"></span>
-              <a href="#" target="_blank" class="mono-link" id="lbl-tunnel-active-url">Not Connected</a>
-            </span>
-          </div>
-          <form id="form-save-tunnel">
-            <div style="display:flex; gap:10px; align-items:center;">
-              <input type="text" class="form-input form-input-mono" id="input-tunnel-token" placeholder="Paste Cloudflare Tunnel token (eyJh...)" style="flex:1;">
-              <button type="submit" class="btn btn-primary" id="btn-submit-tunnel">Connect</button>
-              <button type="button" class="btn btn-destructive-outline" id="btn-disconnect-tunnel" style="display:none;">Disconnect</button>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-              Enables secure private access to your Nextcloud from phones and remote laptops without opening router ports or exposing home IP.
-            </div>
-          </form>
-        </div>
-
-        <!-- System Startup & Boot Settings -->
-        <div class="card" style="margin-bottom: 16px;">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-              System Startup & Windows Boot
-            </div>
-            <span class="service-status">
-              <span class="status-dot dot-stopped" id="dot-autostart-status"></span>
-              <span id="lbl-autostart-status" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">Start on Boot: Off</span>
-            </span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div>
-              <div style="font-size:0.84rem; font-weight:500; color:var(--text-primary);">Launch Nextcloud Server when Windows boots</div>
-              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Runs the supervisor in background tray mode automatically on user login.</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="chk-autostart">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="grid-2col">
-          <!-- Server Web Port Settings -->
+          <!-- Add Drive On Demand Card -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Server Web Port
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                Add Drive on Demand (External Storage)
               </div>
             </div>
-            <form id="form-change-port">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="input-server-port">HTTP Web Port</label>
-                <div style="display:flex; gap:8px;">
-                  <input type="number" class="form-input form-input-mono" id="input-server-port" value="8080" min="80" max="65535" required style="width:110px;">
-                  <button type="submit" class="btn btn-secondary">Apply</button>
+            <form id="form-add-drive">
+              <div style="display:grid; grid-template-columns: 2fr 1.5fr auto; gap:10px; align-items:flex-end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="input-drive-path">Drive Letter / Directory Path</label>
+                  <div class="input-with-button">
+                    <input type="text" class="form-input form-input-mono" id="input-drive-path" placeholder="e.g. D:\ or E:\MyStorage" required>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-browse-drive">Browse...</button>
+                  </div>
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">Default: 8080 (or 80 with Administrator permissions).</div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="input-drive-name">Display Name in Nextcloud</label>
+                  <input type="text" class="form-input" id="input-drive-name" placeholder="e.g. Media Drive">
+                </div>
+                <button type="submit" class="btn btn-primary" style="height:35px;">
+                  Mount Drive
+                </button>
+              </div>
+            </form>
+
+            <!-- Auto-Detected System Drives Quick-Mount Bar -->
+            <div style="margin-top: 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.76rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Detected Windows Drives (1-Click Mount)</span>
+                <span id="lbl-detected-drives-count" style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);"></span>
+              </div>
+              <div class="detected-drives-bar" id="detected-drives-container">
+                <!-- Populated dynamically with available drive chips -->
+              </div>
+            </div>
+
+            <h3 style="font-size:0.85rem; margin-top:14px; margin-bottom:10px; font-weight:600; color:var(--text-primary);">Active Connected Drives</h3>
+            <div class="drive-list" id="drive-list-container">
+              <!-- Driven dynamically populated by app.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- View: Config (Unified Settings & Networking) -->
+        <section class="tab-content" id="view-config">
+          <!-- Cloudflare Tunnel Configuration -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Cloudflare Tunnel (Encrypted Remote Access)
+              </div>
+              <span class="service-status">
+                <span class="status-dot dot-stopped" id="dot-cfg-tunnel"></span>
+                <a href="#" target="_blank" class="mono-link" id="lbl-tunnel-active-url">Not Connected</a>
+              </span>
+            </div>
+            <form id="form-save-tunnel">
+              <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text" class="form-input form-input-mono" id="input-tunnel-token" placeholder="Paste Cloudflare Tunnel token (eyJh...)" style="flex:1;">
+                <button type="submit" class="btn btn-primary" id="btn-submit-tunnel">Connect</button>
+                <button type="button" class="btn btn-destructive-outline" id="btn-disconnect-tunnel" style="display:none;">Disconnect</button>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Enables secure private access to your Nextcloud from phones and remote laptops without opening router ports or exposing home IP.
               </div>
             </form>
           </div>
 
-          <!-- Administrator Password -->
+          <!-- System Startup & Boot Settings -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                System Startup & Windows Boot
+              </div>
+              <span class="service-status">
+                <span class="status-dot dot-stopped" id="dot-autostart-status"></span>
+                <span id="lbl-autostart-status" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">Start on Boot: Off</span>
+              </span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="font-size:0.84rem; font-weight:500; color:var(--text-primary);">Launch Nextcloud Server when Windows boots</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Runs the supervisor in background tray mode automatically on user login.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="chk-autostart">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Server Web Port Settings -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Server Web Port
+                </div>
+              </div>
+              <form id="form-change-port">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="input-server-port">HTTP Web Port</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" class="form-input form-input-mono" id="input-server-port" value="8080" min="80" max="65535" required style="width:110px;">
+                    <button type="submit" class="btn btn-secondary">Apply</button>
+                  </div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">Default: 8080 (or 80 with Administrator permissions).</div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Administrator Password -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Administrator Password
+                </div>
+                <span class="mono-badge">User: <strong id="lbl-admin-username" style="color:var(--text-primary);">admin</strong></span>
+              </div>
+              <form id="form-update-admin">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="input-admin-password">New Password</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="password" class="form-input" id="input-admin-password" placeholder="Enter new password (min. 8 chars)" required style="flex:1;">
+                    <button type="submit" class="btn btn-secondary">Update</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Database Engine & Storage Management -->
+          <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                Database Engine & Storage (libSQL / SQLite WAL)
+              </div>
+              <span class="service-status">
+                <span class="status-dot dot-running" id="dot-db-status"></span>
+                <span id="lbl-db-status" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">ACID • WAL Active</span>
+              </span>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:14px; background:var(--bg-app); padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
+              <div>
+                <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Engine & Mode</div>
+                <div id="lbl-db-engine" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-top:2px;">libSQL / SQLite WAL</div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Database Size</div>
+                <div id="lbl-db-size" class="mono-link" style="font-size:0.85rem; margin-top:2px;">0.00 MB</div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">WAL Journal Size</div>
+                <div id="lbl-db-wal-size" class="mono-link" style="font-size:0.85rem; margin-top:2px;">0.00 MB</div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Integrity Check</div>
+                <div id="lbl-db-integrity" style="font-size:0.85rem; color:var(--accent-emerald); font-weight:500; margin-top:2px;">ok</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div style="font-size:0.75rem; color:var(--text-muted);">
+                Zero-daemon embed with memory mapping (mmap 256MB) & Redis transactional file locking.
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-db-optimize" title="Checkpoint WAL journal and vacuum unused pages">
+                  Optimize & Checkpoint
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-db-backup" title="Create hot atomic point-in-time snapshot without downtime">
+                  Hot Backup
+                </button>
+              </div>
+            </div>
+            <div id="lbl-db-action-status" style="font-size:0.75rem; color:var(--accent-sky); margin-top:8px; display:none;"></div>
+          </div>
+
+          <!-- Trusted Domains Management -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                Administrator Password
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                Trusted Domains
               </div>
-              <span class="mono-badge">User: <strong id="lbl-admin-username" style="color:var(--text-primary);">admin</strong></span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">localhost & 127.0.0.1 active by default</span>
             </div>
-            <form id="form-update-admin">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" for="input-admin-password">New Password</label>
-                <div style="display:flex; gap:8px;">
-                  <input type="password" class="form-input" id="input-admin-password" placeholder="Enter new password (min. 8 chars)" required style="flex:1;">
-                  <button type="submit" class="btn btn-secondary">Update</button>
-                </div>
+            <form id="form-add-domain" style="margin-bottom: 12px;">
+              <div style="display:flex; gap:8px;">
+                <input type="text" class="form-input form-input-mono" id="input-new-domain" placeholder="e.g. cloud.mydomain.com or my-pc.local" required style="flex:1;">
+                <button type="submit" class="btn btn-primary">Add Domain</button>
               </div>
             </form>
+            <div id="trusted-domains-list" style="display:flex; flex-wrap:wrap; gap:8px;">
+              <!-- Populated dynamically by app.js -->
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Database Engine & Storage Management -->
-        <div class="card" style="margin-bottom: 16px;">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-              Database Engine & Storage (libSQL / SQLite WAL)
-            </div>
-            <span class="service-status">
-              <span class="status-dot dot-running" id="dot-db-status"></span>
-              <span id="lbl-db-status" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">ACID • WAL Active</span>
-            </span>
-          </div>
-          
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:14px; background:var(--bg-app); padding:10px 14px; border-radius:6px; border:1px solid var(--border-color);">
-            <div>
-              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Engine & Mode</div>
-              <div id="lbl-db-engine" style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-top:2px;">libSQL / SQLite WAL</div>
-            </div>
-            <div>
-              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Database Size</div>
-              <div id="lbl-db-size" class="mono-link" style="font-size:0.85rem; margin-top:2px;">0.00 MB</div>
-            </div>
-            <div>
-              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">WAL Journal Size</div>
-              <div id="lbl-db-wal-size" class="mono-link" style="font-size:0.85rem; margin-top:2px;">0.00 MB</div>
-            </div>
-            <div>
-              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Integrity Check</div>
-              <div id="lbl-db-integrity" style="font-size:0.85rem; color:var(--accent-emerald); font-weight:500; margin-top:2px;">ok</div>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="font-size:0.75rem; color:var(--text-muted);">
-              Zero-daemon embed with memory mapping (mmap 256MB) & Redis transactional file locking.
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-db-optimize" title="Checkpoint WAL journal and vacuum unused pages">
-                Optimize & Checkpoint
-              </button>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-db-backup" title="Create hot atomic point-in-time snapshot without downtime">
-                Hot Backup
-              </button>
-            </div>
-          </div>
-          <div id="lbl-db-action-status" style="font-size:0.75rem; color:var(--accent-sky); margin-top:8px; display:none;"></div>
-        </div>
-
-        <!-- Trusted Domains Management -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Trusted Domains
-            </div>
-            <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">localhost & 127.0.0.1 active by default</span>
-          </div>
-          <form id="form-add-domain" style="margin-bottom: 12px;">
-            <div style="display:flex; gap:8px;">
-              <input type="text" class="form-input form-input-mono" id="input-new-domain" placeholder="e.g. cloud.mydomain.com or my-pc.local" required style="flex:1;">
-              <button type="submit" class="btn btn-primary">Add Domain</button>
-            </div>
-          </form>
-          <div id="trusted-domains-list" style="display:flex; flex-wrap:wrap; gap:8px;">
-            <!-- Populated dynamically by app.js -->
-          </div>
-        </div>
-      </section>
-
-      <!-- View: In-App Logs -->
-      <section class="tab-content" id="view-logs" style="height: calc(100vh - var(--header-height)); padding: 16px 24px;">
-        <div id="log-viewer-root" style="height: 100%;"></div>
-      </section>
-    </main>
+        <!-- View: In-App Logs -->
+        <section class="tab-content" id="view-logs" style="height: calc(100vh - var(--header-height)); padding: 16px 24px;">
+          <div id="log-viewer-root" style="height: 100%;"></div>
+        </section>
+      </main>
+    </div>
   </div>
 
   <!-- Fluid Splash / Loading Screen -->
@@ -495,19 +585,13 @@
     <div class="splash-center">
       <div class="splash-logo-container" id="splash-logo-container">
         <div class="splash-glow"></div>
-        <svg class="splash-cloud-svg" viewBox="0 0 24 24" fill="none">
-          <defs>
-            <linearGradient id="splashCloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#38BDF8" />
-              <stop offset="100%" stop-color="#0EA5E9" />
-            </linearGradient>
-          </defs>
-          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="url(#splashCloudGrad)"/>
+        <svg class="splash-cloud-svg" viewBox="0 0 160 80" fill="#ffffff">
+          <path d="M46.7,21.8 C41.6,18.2 35.1,16 28,16 C12.5,16 0,28.5 0,44 C0,59.5 12.5,72 28,72 C35.1,72 41.6,69.8 46.7,66.2 C55.3,74.7 67,80 80,80 C93,80 104.7,74.7 113.3,66.2 C118.4,69.8 124.9,72 132,72 C147.5,72 160,59.5 160,44 C160,28.5 147.5,16 132,16 C124.9,16 118.4,18.2 113.3,21.8 C104.7,13.3 93,8 80,8 C67,8 55.3,13.3 46.7,21.8 Z M28,26 C37.9,26 46,34.1 46,44 C46,53.9 37.9,62 28,62 C18.1,62 10,53.9 10,44 C10,34.1 18.1,26 28,26 Z M80,18 C94.4,18 106,29.6 106,44 C106,58.4 94.4,70 80,70 C65.6,70 54,58.4 54,44 C54,29.6 65.6,18 80,18 Z M132,26 C141.9,26 150,34.1 150,44 C150,53.9 141.9,62 132,62 C122.1,62 114,53.9 114,44 C114,34.1 122.1,26 132,26 Z" fill-rule="evenodd"/>
         </svg>
       </div>
       <div class="splash-meta" id="splash-meta">
         <div class="splash-title">Nextcloud AIO</div>
-        <div class="splash-branding">by roufsweb</div>
+        <div class="splash-branding">Windows Server Edition • by roufsweb</div>
         <div class="splash-progress-track">
           <div class="splash-progress-bar"></div>
         </div>
@@ -551,6 +635,9 @@
           </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-open-report" title="Generate bug report for GitHub">
+            Export Report
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btn-rerun-diagnostics">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
             Re-scan
@@ -560,6 +647,57 @@
       </div>
       <div class="diag-modal-body" id="modal-diag-list">
         <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Nextcloud Issue Reporter & Diagnostics Export Modal -->
+  <div id="issue-report-modal" class="cmd-modal-backdrop">
+    <div class="issue-report-content" role="dialog" aria-modal="true" aria-label="Issue Reporter">
+      <div class="issue-report-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="diag-pulse-icon" style="color:var(--color-primary); background:rgba(0,130,201,0.12); border-color:rgba(0,130,201,0.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"></path><path d="M4 14h16"></path><path d="M4 18h16"></path><path d="M12 19v3"></path></svg>
+          </div>
+          <div>
+            <h2 style="font-size:1.02rem; font-weight:600; color:#FFFFFF; margin:0;">Nextcloud Issue & Bug Reporter</h2>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Generate sanitized reports, review root causes, or file on GitHub</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-issue-modal">✕</button>
+      </div>
+
+      <div class="issue-report-body">
+        <!-- Live Status Summary Banner -->
+        <div class="issue-status-banner healthy" id="issue-status-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <div id="issue-status-text">Nextcloud Stack is Healthy • Zero Critical Issues Detected</div>
+        </div>
+
+        <div>
+          <div style="font-size:0.82rem; font-weight:600; color:var(--text-primary); margin-bottom:4px;">Sanitized Markdown Diagnostic Report</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">All passwords, tokens, and private paths are automatically scrubbed for safe public sharing.</div>
+          <pre class="issue-preview-box" id="issue-preview-text">Generating system diagnostic summary...</pre>
+        </div>
+      </div>
+
+      <div class="issue-actions-bar">
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-issue-report">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy Issue Report
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-download-issue-report">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download .txt
+          </button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <a href="https://github.com/roufsweb/nextcloud-server-windows/issues/new" target="_blank" class="btn btn-primary btn-sm" id="btn-open-github-issue">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            File Issue on GitHub ↗
+          </a>
+        </div>
       </div>
     </div>
   </div>
