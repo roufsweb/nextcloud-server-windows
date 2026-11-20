@@ -3,6 +3,11 @@ use std::process::{Child, Command, Stdio};
 use anyhow::{bail, Context, Result};
 use colored::*;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 /// Validates Cloudflare Tunnel Token format
 pub fn validate_token(token: &str) -> Result<()> {
     let trimmed = token.trim();
@@ -21,11 +26,17 @@ pub fn spawn_tunnel<P: AsRef<Path>>(cloudflared_bin: P, token: &str) -> Result<C
     let bin_path = cloudflared_bin.as_ref();
     println!("{} Spawning Cloudflare Tunnel daemon...", "==>".blue());
 
-    let child = Command::new(bin_path)
-        .args(["tunnel", "run", "--token", token.trim()])
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
+    let mut cmd = Command::new(bin_path);
+    cmd.args(["tunnel", "run", "--token", token.trim()])
+       .stdout(Stdio::null())
+       .stderr(Stdio::null());
+
+    #[cfg(target_os = "windows")]
+    {
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let child = cmd.spawn()
         .with_context(|| format!("Failed to spawn cloudflared at {:?}", bin_path))?;
 
     println!("{} Cloudflare Tunnel started successfully.", "✓".green());

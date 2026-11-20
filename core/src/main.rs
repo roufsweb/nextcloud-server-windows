@@ -87,10 +87,18 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Start { dashboard_port, gui } => {
+            let supervisor = Arc::new(std::sync::Mutex::new(supervisor::ServerSupervisor::new(config.clone())));
+            {
+                if let Ok(mut sup) = supervisor.lock() {
+                    let _ = sup.spawn_services();
+                }
+            }
+
             // Spawn internal dashboard HTTP server in background
             let srv_cfg = Arc::clone(&shared_config);
+            let srv_sup = Arc::clone(&supervisor);
             tokio::spawn(async move {
-                if let Err(e) = server::run_dashboard_server(dashboard_port, srv_cfg, CONFIG_PATH).await {
+                if let Err(e) = server::run_dashboard_server(dashboard_port, srv_cfg, srv_sup, CONFIG_PATH).await {
                     eprintln!("Dashboard server error: {}", e);
                 }
             });
@@ -103,24 +111,49 @@ async fn main() -> anyhow::Result<()> {
                 });
             }
 
-            // Start backend process supervisor
-            let sup = supervisor::ServerSupervisor::new(config);
-            sup.start()?;
+            // Monitor until Ctrl+C
+            let sup_clone = Arc::clone(&supervisor);
+            let running = Arc::new(std::sync::atomic::AtomicBool::new(true));
+            let r_clone = Arc::clone(&running);
+            ctrlc::set_handler(move || {
+                println!("\n{} Shutdown signal received. Stopping services...", "==>".yellow());
+                r_clone.store(false, std::sync::atomic::Ordering::SeqCst);
+                if let Ok(mut sup) = sup_clone.lock() {
+                    sup.stop_services();
+                }
+                std::process::exit(0);
+            }).expect("Error setting Ctrl-C handler");
+
+            println!("Press Ctrl+C to shut down all services gracefully.\n");
+            while running.load(std::sync::atomic::Ordering::SeqCst) {
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            }
         }
         Commands::Gui { port } => {
             println!("{}", "=========================================================".cyan());
             println!("{}", "   Nextcloud AIO Standalone Desktop Dashboard (In-App GUI) ".bold().green());
             println!("{}", "=========================================================".cyan());
 
+            let supervisor = Arc::new(std::sync::Mutex::new(supervisor::ServerSupervisor::new(config.clone())));
+            {
+                if let Ok(mut sup) = supervisor.lock() {
+                    let _ = sup.spawn_services();
+                }
+            }
+
             let srv_cfg = Arc::clone(&shared_config);
+            let srv_sup = Arc::clone(&supervisor);
             tokio::spawn(async move {
-                let _ = server::run_dashboard_server(port, srv_cfg, CONFIG_PATH).await;
+                let _ = server::run_dashboard_server(port, srv_cfg, srv_sup, CONFIG_PATH).await;
             });
 
             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
             if let Ok(mut p) = gui::spawn_in_app_gui(port) {
                 let _ = p.wait();
             }
+            if let Ok(mut sup) = supervisor.lock() {
+                sup.stop_services();
+            };
         }
         Commands::Status => {
             println!("{}", "=== Nextcloud Server AIO Status ===".bold().cyan());
@@ -164,9 +197,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Server { port, config: cfg_file } => {
             let static_cfg: &'static str = Box::leak(cfg_file.into_boxed_str());
             let loaded_config = AppConfig::load_or_default(static_cfg);
-            let shared_config = Arc::new(Mutex::new(loaded_config));
+            let shared_config = Arc::new(Mutex::new(loaded_config.clone()));
+            let supervisor = Arc::new(std::sync::Mutex::new(supervisor::ServerSupervisor::new(loaded_config)));
             println!("{} Starting Nextcloud AIO Dashboard server on port {}...", "==>".blue(), port);
-            server::run_dashboard_server(port, shared_config, static_cfg).await?;
+            server::run_dashboard_server(port, shared_config, supervisor, static_cfg).await?;
         }
     }
 

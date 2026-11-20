@@ -27,16 +27,21 @@ pub fn grant_drive_permissions<P: AsRef<Path>>(drive_path: P) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
         println!("{} Applying Windows NTFS ACLs (Full Control with inheritance)...", " ->".yellow());
         // Use universal SID *S-1-1-0 ("Everyone") to work across all language editions of Windows
-        let output = Command::new("icacls")
-            .arg(&*path_str)
+        let mut cmd = Command::new("icacls");
+        cmd.arg(&*path_str)
             .arg("/grant")
             .arg("*S-1-1-0:(OI)(CI)F")
             .arg("/T")
             .arg("/C")
             .arg("/Q")
-            .output()
+            .creation_flags(CREATE_NO_WINDOW);
+
+        let output = cmd.output()
             .with_context(|| format!("Failed to execute icacls on {}", path_str))?;
 
         if !output.status.success() {

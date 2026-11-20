@@ -6,16 +6,22 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 use colored::*;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 /// Candidate executable paths for the native Windows app window host
 const WINDOWS_APP_HOSTS: &[&str] = &[
-    // Microsoft Edge (Standard on 100% of Windows 10 / 11 / Server installations)
-    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-    // Google Chrome fallback
+    // Google Chrome
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-    // Brave Browser fallback
+    // Microsoft Edge
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    // Brave Browser
     r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+    r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
 ];
 
 /// Resolve the local user-data directory for the standalone GUI window profile
@@ -36,9 +42,27 @@ fn find_app_host() -> Option<PathBuf> {
         }
     }
 
-    // Try finding via PATH
-    for name in &["msedge.exe", "msedge", "chrome.exe", "chrome"] {
-        if let Ok(output) = Command::new("where").arg(name).output() {
+    // Check %LOCALAPPDATA% per-user installations
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let local_base = PathBuf::from(local_app_data);
+        let per_user_candidates = [
+            local_base.join(r"Google\Chrome\Application\chrome.exe"),
+            local_base.join(r"Microsoft\Edge\Application\msedge.exe"),
+            local_base.join(r"BraveSoftware\Brave-Browser\Application\brave.exe"),
+        ];
+        for candidate in &per_user_candidates {
+            if candidate.exists() {
+                return Some(candidate.clone());
+            }
+        }
+    }
+
+    // Try finding via PATH (with CREATE_NO_WINDOW to suppress console flashes)
+    #[cfg(target_os = "windows")]
+    for name in &["chrome.exe", "msedge.exe", "brave.exe", "chrome", "msedge"] {
+        let mut cmd = Command::new("where");
+        cmd.arg(name).creation_flags(CREATE_NO_WINDOW);
+        if let Ok(output) = cmd.output() {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 if let Some(first_line) = stdout.lines().next() {
@@ -68,30 +92,36 @@ pub fn spawn_in_app_gui(port: u16) -> anyhow::Result<Child> {
             host.display()
         );
 
-        let child = Command::new(&host)
-            .arg(format!("--app={}", url))
+        let mut cmd = Command::new(&host);
+        cmd.arg(format!("--app={}", url))
             .arg(format!("--user-data-dir={}", user_data.display()))
             .arg("--window-size=1240,840")
             .arg("--app-id=NextcloudAIO")
             .arg("--disable-features=TranslateUI")
             .arg("--no-first-run")
             .arg("--no-default-browser-check")
-            .spawn()?;
+            .arg("--disable-background-mode")
+            .arg("--disable-extensions")
+            .arg("--disable-sync")
+            .arg("--disable-component-update")
+            .arg("--disable-default-apps");
 
+        let child = cmd.spawn()?;
         return Ok(child);
     }
 
-    // Secondary fallback: Windows default shell open
+    // Secondary fallback: Windows default shell open (suppress CMD flash)
     println!(
-        "{} App host binary not found at standard paths. Spawning default window...",
+        "{} App host binary not found at standard paths. Spawning default browser window...",
         "[WARN]".bold().yellow()
     );
 
     #[cfg(target_os = "windows")]
     {
-        let child = Command::new("cmd")
-            .args(["/c", "start", &url])
-            .spawn()?;
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/c", "start", &url])
+           .creation_flags(CREATE_NO_WINDOW);
+        let child = cmd.spawn()?;
         Ok(child)
     }
 

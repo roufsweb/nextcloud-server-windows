@@ -6,7 +6,6 @@ use colored::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
@@ -389,12 +388,12 @@ async fn append_log(logs: &Arc<Mutex<Vec<LogEntry>>>, tag: &str, msg: String) {
 pub async fn run_dashboard_server(
     port: u16,
     config: Arc<Mutex<AppConfig>>,
+    supervisor: Arc<std::sync::Mutex<crate::supervisor::ServerSupervisor>>,
     config_path: &'static str,
 ) -> Result<()> {
     let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
     println!("{} Nextcloud AIO Dashboard running on: {}", "🚀".bold(), format!("http://localhost:{}", port).cyan());
 
-    let services_running = Arc::new(AtomicBool::new(true));
     let logs_buffer: Arc<Mutex<Vec<LogEntry>>> = Arc::new(Mutex::new(vec![
         LogEntry {
             time: current_time_str(),
@@ -421,7 +420,7 @@ pub async fn run_dashboard_server(
     loop {
         let (mut socket, _) = listener.accept().await?;
         let config_clone = Arc::clone(&config);
-        let running_clone = Arc::clone(&services_running);
+        let sup_clone = Arc::clone(&supervisor);
         let logs_clone = Arc::clone(&logs_buffer);
 
         tokio::spawn(async move {
@@ -568,7 +567,7 @@ pub async fn run_dashboard_server(
                 let (data_tot, data_used, _data_free) = drive::get_disk_space(&cfg.data_dir);
 
                 let resp = StatusResponse {
-                    running: running_clone.load(Ordering::SeqCst),
+                    running: sup_clone.lock().map(|s| s.is_running()).unwrap_or(false),
                     server_port: cfg.server_port,
                     fastcgi_port: cfg.fastcgi_port,
                     data_dir: cfg.data_dir.to_string_lossy().to_string(),
@@ -580,12 +579,16 @@ pub async fn run_dashboard_server(
                 };
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&resp).unwrap_or_default())
             } else if method == "POST" && uri == "/api/services/start" {
-                running_clone.store(true, Ordering::SeqCst);
+                if let Ok(mut sup) = sup_clone.lock() {
+                    let _ = sup.spawn_services();
+                }
                 append_log(&logs_clone, "CORE", "Server services started (Caddy, PHP-CGI, Cloudflared).".into()).await;
                 ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"started\",\"running\":true}".to_vec())
             } else if method == "POST" && uri == "/api/services/stop" {
-                running_clone.store(false, Ordering::SeqCst);
-                append_log(&logs_clone, "CORE", "Server services stopped gracefully (SIGTERM sent to children).".into()).await;
+                if let Ok(mut sup) = sup_clone.lock() {
+                    sup.stop_services();
+                }
+                append_log(&logs_clone, "CORE", "Server services stopped gracefully. All background processes terminated.".into()).await;
                 ("HTTP/1.1 200 OK", "application/json", b"{\"status\":\"stopped\",\"running\":false}".to_vec())
             } else if method == "GET" && uri == "/api/logs" {
                 let l = logs_clone.lock().await;
@@ -723,6 +726,12 @@ pub async fn run_dashboard_server(
                                 let mut cmd = std::process::Command::new(php_path);
                                 cmd.arg("nextcloud/occ").args(["user:resetpassword", "--password-from-env", &target_user]);
                                 cmd.env("OC_PASS", pass_val);
+                                #[cfg(target_os = "windows")]
+                                {
+                                    use std::os::windows::process::CommandExt;
+                                    const CREATE_NO_WINDOW: u32 = 0x08000000;
+                                    cmd.creation_flags(CREATE_NO_WINDOW);
+                                }
                                 let _ = cmd.output();
                             });
                         }
@@ -787,7 +796,7 @@ pub async fn run_dashboard_server(
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&resp).unwrap_or_default())
             } else if method == "GET" && uri == "/api/system/diagnostics" {
                 let cfg = config_clone.lock().await;
-                let is_running = running_clone.load(Ordering::SeqCst);
+                let is_running = sup_clone.lock().map(|s| s.is_running()).unwrap_or(false);
                 let diag = run_diagnostics(&cfg, is_running);
                 ("HTTP/1.1 200 OK", "application/json", serde_json::to_vec(&diag).unwrap_or_default())
             } else if method == "GET" && uri == "/api/config/autostart" {
